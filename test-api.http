@@ -1,0 +1,11 @@
+### Tes Endpoint Profil Sekolah
+GET http://172.28.168.116:8004/api/v1/school-profile
+
+### Tes Endpoint Berita (PageView Android)
+GET http://172.28.168.116:8004/api/v1/posts
+
+### Tes Endpoint Fasilitas
+GET http://172.28.168.116:8004/api/v1/facilities
+
+### Tes Endpoint Prestasi
+GET http://172.28.168.116:8004/api/v1/achievements

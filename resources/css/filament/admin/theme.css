@@ -1,0 +1,135 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@config '../../../../tailwind.config.js';
+
+/* =========================================================
+   1. TOPBAR FULL GELAP (MEMAKSA SEMUA ELEMENT CONTAINER)
+   ========================================================= */
+.fi-topbar,
+header.fi-topbar,
+nav.fi-topbar,
+.fi-topbar-nav,
+.fi-topbar > div,
+.fi-topbar header {
+    background-color: #002b5b !important; /* Biru Gelap Dapodik */
+    border-bottom: 3px solid #0284c7 !important; /* Garis Aksen Biru Terang */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Memaksa Semua Teks, Icon, dan Button di Topbar Kanan Berwarna Putih */
+.fi-topbar *,
+.fi-topbar-item-label,
+.fi-topbar button,
+.fi-topbar button span,
+.fi-topbar svg,
+.fi-topbar a {
+    color: #ffffff !important;
+}
+
+/* Avatar / Inisial User di Topbar */
+.fi-topbar-user-menu button div,
+.fi-avatar {
+    background-color: #0284c7 !important;
+    color: #ffffff !important;
+    border: 2px solid rgba(255, 255, 255, 0.4) !important;
+}
+
+/* =========================================================
+   2. HEADER LOGO KIRI ATAS (DIBEDAKAN WARNANYA DARI SIDEBAR)
+   ========================================================= */
+.fi-sidebar-header {
+    background-color: #00122e !important; /* Navy Sangat Gelap (Beda dari Sidebar) */
+    border-bottom: 3px solid #0284c7 !important;
+    border-right: 1px solid #002b5b !important;
+}
+
+.fi-sidebar-header *,
+.fi-sidebar-header a,
+.fi-sidebar-header span {
+    color: #ffffff !important;
+    font-weight: 800 !important;
+}
+
+/* =========================================================
+   3. SIDEBAR NAVIGATION (BIRU TUA KEMENDIKBUD)
+   ========================================================= */
+aside.fi-sidebar {
+    background-color: #001f3f !important; /* Biru Tua Sidebar */
+    border-right: 1px solid #002b5b !important;
+}
+
+.fi-sidebar-group-label,
+.fi-sidebar-item-label,
+.fi-sidebar-item-button,
+.fi-sidebar-item-button * {
+    color: #cbd5e1 !important;
+}
+
+.fi-sidebar-item-button:hover,
+.fi-sidebar-item-button:hover * {
+    background-color: #002b5b !important;
+    color: #ffffff !important;
+}
+
+.fi-sidebar-item-active .fi-sidebar-item-button,
+.fi-sidebar-item-active .fi-sidebar-item-button * {
+    background-color: #0284c7 !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border-radius: 0.5rem !important;
+}
+
+/* =========================================================
+   4. DROPDOWN PROFILE / LOGOUT (TETAP KONTRAST & TERBACA)
+   ========================================================= */
+div[class*="fi-dropdown-panel"],
+.fi-dropdown-panel {
+    background-color: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.25) !important;
+}
+
+.fi-dropdown-panel *,
+.fi-dropdown-list-item,
+.fi-dropdown-list-item *,
+.fi-dropdown-header *,
+button.fi-dropdown-list-item span {
+    color: #0f172a !important; /* Teks Hitam Pekat */
+}
+
+.fi-dropdown-list-item:hover,
+.fi-dropdown-list-item:hover * {
+    background-color: #fef2f2 !important; 
+    color: #dc2626 !important; /* Merah Saat Hover Logout */
+}
+
+/* =========================================================
+   5. HALAMAN LOGIN & BODY
+   ========================================================= */
+body, .fi-body { 
+    background-color: #f1f5f9 !important; 
+}
+
+.fi-simple-layout {
+    background: linear-gradient(135deg, #001f3f 0%, #003366 50%, #0284c7 100%) !important;
+    min-height: 100vh !important;
+}
+
+.fi-simple-main {
+    background-color: #ffffff !important;
+    border-radius: 1rem !important;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.4) !important;
+    padding: 2.5rem !important;
+}
+
+.fi-simple-header-heading { 
+    color: #003366 !important; 
+    font-weight: 800 !important; 
+}
+
+.fi-simple-main button[type="submit"] {
+    background: linear-gradient(135deg, #003366 0%, #0284c7 100%) !important;
+    border: none !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}

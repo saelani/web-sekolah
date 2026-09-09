@@ -1,0 +1,74 @@
+/* Styling Khusus Dapodik Kemendikbud */
+:root {
+    --dapodik-primary: #003366;
+    --dapodik-secondary: #0284c7;
+    --dapodik-bg: #f8fafc;
+}
+
+/* Header Navbar & Sidebar styling */
+.fi-topbar {
+    background-color: var(--dapodik-primary) !important;
+    border-bottom: 3px solid #eab308 !important; /* Kuning Aksen Dapodik */
+}
+
+.fi-topbar-item-label, .fi-topbar-button {
+    color: #ffffff !important;
+}
+
+.fi-sidebar-header {
+    background-color: #002244 !important;
+}
+
+/* Tabel Berpola Dapodik */
+.fi-ta-header-cell {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    border-bottom: 2px solid #cbd5e1 !important;
+}
+
+/* Zebra Striping pada Tabel Filament */
+.fi-ta-row:nth-child(even) {
+    background-color: #f8fafc !important;
+}
+
+.fi-ta-row:nth-child(odd) {
+    background-color: #ffffff !important;
+}
+
+.fi-ta-row:hover {
+    background-color: #e0f2fe !important;
+}
+
+/* Custom Card & Widget */
+.fi-wi-stats-overview-stat {
+    border: 1px solid #e2e8f0 !important;
+    border-left: 4px solid var(--dapodik-primary) !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Penyesuaian Mobile Touch Target (Android NativePHP) */
+@media (max-width: 768px) {
+    .fi-sidebar {
+        z-index: 50 !important;
+    }
+    
+    /* Memperbesar tap target agar mudah ditekan jari */
+    .fi-btn {
+        min-height: 44px !important;
+        padding-top: 0.625rem !important;
+        padding-bottom: 0.625rem !important;
+    }
+
+    .fi-input-wrapper {
+        min-height: 44px !important;
+    }
+
+    /* Mencegah zoom otomatis pada input Android Webview */
+    input, select, textarea {
+        font-size: 16px !important;
+    }
+}
