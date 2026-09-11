@@ -8,34 +8,201 @@
         </div>
     @endif
 
-    {{-- TAMPILAN JIKA SEDANG UJIAN --}}
-    @if($isTakingExam)
-        <div class="p-6 bg-white rounded-2xl shadow-sm border space-y-4" wire:key="cbt-exam-wrapper">
-            <h2 class="text-xl font-bold">{{ $activeExam->title ?? 'Ujian CBT' }}</h2>
-            <p class="text-sm text-gray-500">Soal {{ $currentIndex + 1 }} dari {{ count($questions) }}</p>
-            {{-- Konten CBT Ujian --}}
+    {{-- TAMPILAN JIKA SEDANG UJIAN (CBT NATIVE) --}}
+    @if($isTakingExam && $activeExam)
+        <div x-data="{ 
+            secondsLeft: @entangle('remainingSeconds'),
+            init() {
+                let timer = setInterval(() => {
+                    if (this.secondsLeft > 0) {
+                        this.secondsLeft--;
+                    } else {
+                        clearInterval(timer);
+                        $wire.submitExam();
+                    }
+                }, 1000);
+            },
+            formatTime(sec) {
+                let h = Math.floor(sec / 3600);
+                let m = Math.floor((sec % 3600) / 60);
+                let s = sec % 60;
+                return `${h > 0 ? h + ':' : ''}${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+            }
+        }" class="space-y-4" wire:key="cbt-exam-wrapper">
+            
+            <!-- Header Status Ujian & Timer -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800">{{ $activeExam->title }}</h2>
+                    <p class="text-xs text-gray-500">Soal ke-{{ $currentIndex + 1 }} dari {{ count($questions) }} soal</p>
+                </div>
+
+                <div class="px-4 py-2 bg-red-50 text-red-600 rounded-xl font-mono font-bold text-lg border border-red-200 flex items-center gap-2">
+                    <svg class="w-5 h-5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span x-text="formatTime(secondsLeft)"></span>
+                </div>
+            </div>
+
+            <!-- Grid Utama: Soal vs Navigasi Nomor -->
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                
+                <!-- Lembar Soal & Pilihan Jawaban -->
+                <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-sm border flex flex-col justify-between min-h-[450px]">
+                    @php $currentQ = $questions[$currentIndex] ?? null; @endphp
+
+                    @if($currentQ)
+                        <div>
+                            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                                <span class="text-xs font-semibold px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg">
+                                    Pertanyaan No. {{ $currentIndex + 1 }}
+                                </span>
+                                <span class="text-xs text-gray-400">Bobot Soal: {{ $currentQ['score_weight'] ?? 1 }} Poin</span>
+                            </div>
+
+                            <!-- Pertanyaan -->
+                            <div class="prose max-w-none text-gray-800 text-base mb-6">
+                                {!! is_array($currentQ['question_text']) ? json_encode($currentQ['question_text']) : $currentQ['question_text'] !!}
+                            </div>
+
+                            <!-- Opsi Jawaban / Input Essay -->
+                            @php
+                                $type = $currentQ['type'] ?? ($currentQ['question_type'] ?? (count($currentQ['options'] ?? []) > 0 ? 'multiple_choice' : 'essay'));
+                            @endphp
+
+                            @if($type === 'essay' || empty($currentQ['options']))
+                                <!-- Field Input untuk Soal Essay -->
+                                <div class="space-y-2">
+                                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider">Jawaban Anda:</label>
+                                    <textarea 
+                                        wire:model.lazy="essayAnswers.{{ $currentQ['id'] }}"
+                                        wire:change="saveEssayAnswer({{ $currentQ['id'] }})"
+                                        rows="5"
+                                        placeholder="Ketikkan jawaban Anda secara lengkap di sini..."
+                                        class="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm text-gray-800 transition shadow-sm"
+                                    ></textarea>
+                                    <p class="text-xs text-gray-400 italic">* Jawaban tersimpan otomatis saat Anda berpindah kolom atau menekan tombol navigasi.</p>
+                                </div>
+                            @else
+                                <!-- Field untuk Pilihan Ganda -->
+                                <div class="space-y-3">
+                                    @php
+                                        $letters = ['A', 'B', 'C', 'D', 'E'];
+                                    @endphp
+
+                                    @foreach($currentQ['options'] as $index => $option)
+                                        @php
+                                            $label = $letters[$index] ?? ($index + 1);
+                                            $optionId = is_array($option) ? ($option['id'] ?? $index) : $option;
+                                            $optionText = is_array($option) ? ($option['option_text'] ?? '') : $option;
+                                            $isSelected = ($userAnswers[$currentQ['id']] ?? null) == $optionId;
+                                        @endphp
+
+                                        <button 
+                                            wire:click="saveAnswer({{ $currentQ['id'] }}, '{{ $optionId }}')" 
+                                            type="button"
+                                            class="w-full text-left p-3.5 rounded-xl border transition-all flex items-center gap-3 
+                                            {{ $isSelected ? 'border-indigo-600 bg-indigo-50 text-indigo-900 font-semibold ring-1 ring-indigo-500' : 'border-gray-200 hover:bg-gray-50 text-gray-700' }}">
+                                            
+                                            <span class="w-7 h-7 flex items-center justify-center rounded-full border text-xs flex-shrink-0 {{ $isSelected ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-gray-100 text-gray-600 border-gray-300' }}">
+                                                {{ $label }}
+                                            </span>
+                                            <span class="text-sm flex-1">{!! $optionText !!}</span>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
+                    @endif
+
+                    <!-- Tombol Navigasi Soal -->
+                    <div class="mt-8 pt-4 border-t flex justify-between items-center">
+                        <button 
+                            wire:click="goToPrevious" 
+                            @disabled($currentIndex === 0) 
+                            type="button"
+                            class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                        >
+                            ← Sebelumnya
+                        </button>
+
+                        @if($currentIndex === count($questions) - 1)
+                            <button 
+                                wire:click="submitExam" 
+                                wire:confirm="Apakah Anda yakin ingin menyelesaikan dan mengumpulkan ujian ini?" 
+                                type="button"
+                                class="px-5 py-2 bg-green-600 text-white text-sm font-bold rounded-xl hover:bg-green-700 transition shadow-sm"
+                            >
+                                Kumpulkan & Selesai Ujian
+                            </button>
+                        @else
+                            <button 
+                                wire:click="goToNext" 
+                                type="button"
+                                class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-xl hover:bg-indigo-700 transition"
+                            >
+                                Selanjutnya →
+                            </button>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Panel Kisi-Kisi Nomor Soal -->
+                <div class="bg-white p-4 rounded-2xl shadow-sm border h-fit">
+                    <h3 class="text-xs font-bold text-gray-600 mb-3 uppercase tracking-wider">Navigasi Nomor Soal</h3>
+                    <div class="grid grid-cols-5 gap-2">
+                        @foreach($questions as $index => $q)
+                            @php
+                                $isAnswered = isset($userAnswers[$q['id']]);
+                                $isCurrent = $currentIndex === $index;
+                            @endphp
+                            <button 
+                                wire:click="jumpToQuestion({{ $index }})" 
+                                type="button"
+                                class="h-9 text-xs font-bold rounded-lg border transition-all
+                                {{ $isCurrent ? 'ring-2 ring-indigo-500 ring-offset-1 border-indigo-500' : '' }}
+                                {{ $isAnswered ? 'bg-green-600 text-white border-green-600' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100' }}">
+                                {{ $index + 1 }}
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
+
+            </div>
         </div>
 
     {{-- DASHBOARD TABS --}}
     @else
-        {{-- NAVIGASI TAB --}}
-        <div class="flex border-b border-gray-200 gap-2 overflow-x-auto pb-1" wire:key="student-tabs-nav">
-            <button wire:click="$set('activeTab', 'dashboard')" 
-                class="px-4 py-2.5 text-sm font-semibold rounded-lg transition-all whitespace-nowrap {{ $activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100' }}">
-                Dashboard
-            </button>
-            <button wire:click="$set('activeTab', 'materi')" 
-                class="px-4 py-2.5 text-sm font-semibold rounded-lg transition-all whitespace-nowrap {{ $activeTab === 'materi' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100' }}">
-                Materi
-            </button>
-            <button wire:click="$set('activeTab', 'ujian')" 
-                class="px-4 py-2.5 text-sm font-semibold rounded-lg transition-all whitespace-nowrap {{ $activeTab === 'ujian' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100' }}">
-                Ujian CBT
-            </button>
-            <button wire:click="$set('activeTab', 'jadwal')" 
-                class="px-4 py-2.5 text-sm font-semibold rounded-lg transition-all whitespace-nowrap {{ $activeTab === 'jadwal' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100' }}">
-                Jadwal & Tugas
-            </button>
+        {{-- NAVIGASI TAB + TOMBOL KELUAR --}}
+        <div class="flex items-center justify-between border-b border-gray-200 pb-2 gap-4" wire:key="student-tabs-nav">
+            <div class="flex items-center gap-2 overflow-x-auto">
+                <button wire:click="$set('activeTab', 'dashboard')" 
+                    class="px-4 py-2 text-sm font-semibold rounded-lg transition-all whitespace-nowrap {{ $activeTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100' }}">
+                    Dashboard
+                </button>
+                <button wire:click="$set('activeTab', 'materi')" 
+                    class="px-4 py-2 text-sm font-semibold rounded-lg transition-all whitespace-nowrap {{ $activeTab === 'materi' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100' }}">
+                    Materi
+                </button>
+                <button wire:click="$set('activeTab', 'ujian')" 
+                    class="px-4 py-2 text-sm font-semibold rounded-lg transition-all whitespace-nowrap {{ $activeTab === 'ujian' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100' }}">
+                    Ujian CBT
+                </button>
+                <button wire:click="$set('activeTab', 'jadwal')" 
+                    class="px-4 py-2 text-sm font-semibold rounded-lg transition-all whitespace-nowrap {{ $activeTab === 'jadwal' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100' }}">
+                    Jadwal & Tugas
+                </button>
+            </div>
+
+            <!-- Tombol Keluar (Logout) Dipindahkan Ke Sini -->
+            <form action="{{ route('student.logout') }}" method="POST" class="flex-shrink-0">
+                @csrf
+                <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl border border-rose-200 transition shadow-sm cursor-pointer whitespace-nowrap">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span>Keluar</span>
+                </button>
+            </form>
         </div>
 
         {{-- AREA KONTEN TABS --}}
@@ -45,7 +212,7 @@
             @if($activeTab === 'dashboard')
                 <div class="space-y-6" wire:key="tab-content-dashboard">
                     
-                    {{-- BIODATA + TOMBOL LOGOUT SISWA --}}
+                    {{-- BIODATA SISWA --}}
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row items-center md:items-start gap-6">
                         <div class="relative flex-shrink-0">
                             <img 
@@ -63,18 +230,10 @@
                                     <p class="text-xs text-gray-500 font-medium mt-0.5">NISN: <span class="text-gray-700 font-semibold">{{ $student->nisn ?? '-' }}</span> | NIS: <span class="text-gray-700 font-semibold">{{ $student->nis ?? '-' }}</span></p>
                                 </div>
                                 
-                                <div class="flex items-center justify-center md:justify-end gap-2">
+                                <div>
                                     <span class="inline-flex items-center px-3 py-1.5 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-xl">
                                         Kelas {{ $student->classroom->name ?? 'Aktif' }}
                                     </span>
-
-                                    {{-- TOMBOL LOGOUT DI HALAMAN SISWA --}}
-                                    <button wire:click="logout" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl border border-rose-200 transition shadow-sm">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                                        </svg>
-                                        <span>Keluar</span>
-                                    </button>
                                 </div>
                             </div>
 
@@ -104,11 +263,11 @@
                         <div class="bg-gradient-to-br from-indigo-600 to-indigo-700 p-6 rounded-2xl text-white shadow-sm flex flex-col justify-between">
                             <div>
                                 <span class="text-xs uppercase tracking-wider text-indigo-200 font-semibold block">Total Tabungan</span>
-                                <h3 class="text-3xl font-extrabold mt-1">Rp {{ number_format($totalSavings, 0, ',', '.') }}</h3>
+                                <h3 class="text-3xl font-extrabold mt-1">Rp {{ number_format($totalSavings ?? 0, 0, ',', '.') }}</h3>
                             </div>
                             <div class="mt-4 pt-3 border-t border-indigo-500/50 flex justify-between items-center text-xs text-indigo-100">
                                 <span>Transaksi Terakhir</span>
-                                <span class="font-medium">{{ $recentSavings->first()?->created_at ? $recentSavings->first()->created_at->format('d M Y') : '-' }}</span>
+                                <span class="font-medium">{{ isset($recentSavings) && $recentSavings->first()?->created_at ? $recentSavings->first()->created_at->format('d M Y') : '-' }}</span>
                             </div>
                         </div>
 
@@ -148,14 +307,12 @@
                 </div>
 
             {{-- TAB 3: UJIAN CBT --}}
-            {{-- TAB 3: UJIAN CBT --}}
             @elseif($activeTab === 'ujian')
                 <div class="p-6 bg-white rounded-2xl shadow-sm border border-gray-100 space-y-4" wire:key="tab-content-ujian">
                     <h3 class="text-lg font-bold text-gray-800">Daftar Ujian CBT</h3>
                     <div class="space-y-3">
                         @forelse($cbtExams as $exam)
                             @php
-                                // Ambil sesi ujian siswa untuk exam ini (jika ada)
                                 $session = $exam->sessions->where('student_id', $student->id ?? auth()->id())->first();
                             @endphp
 
@@ -171,7 +328,6 @@
 
                                 <div class="flex items-center gap-2 self-end sm:self-auto">
                                     @if(!$session)
-                                        {{-- SISWA BELUM MEMULAI UJIAN --}}
                                         <button wire:click="startExam({{ $exam->id }})" 
                                                 wire:loading.attr="disabled"
                                                 class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-1.5">
@@ -183,7 +339,6 @@
                                         </button>
 
                                     @elseif($session->status === 'ongoing')
-                                        {{-- UJIAN SEDANG BERLANGSUNG --}}
                                         <button wire:click="startExam({{ $exam->id }})" 
                                                 wire:loading.attr="disabled"
                                                 class="px-4 py-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-1.5 animate-pulse">
@@ -194,7 +349,6 @@
                                         </button>
 
                                     @else
-                                        {{-- UJIAN SUDAH SELESAI / SUBMITTED / FINISHED --}}
                                         <div class="flex items-center gap-2">
                                             <span class="px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold rounded-xl flex items-center gap-1">
                                                 <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -218,10 +372,9 @@
                         @endforelse
                     </div>
                 </div>
-            
-                {{-- TAB 4: JADWAL & TUGAS SISWA --}}
-            
-                @elseif($activeTab === 'jadwal')
+
+            {{-- TAB 4: JADWAL & TUGAS SISWA --}}
+            @elseif($activeTab === 'jadwal')
                 <div class="space-y-6" wire:key="tab-content-jadwal">
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         

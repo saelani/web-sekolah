@@ -2,13 +2,10 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Auth\Events\Logout;
-use Illuminate\Support\Facades\Redirect;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,14 +22,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Redirect setelah Logout
-        Event::listen(Logout::class, function () {
-            session()->flash('status', 'Logged out');
-            // Paksa redirect ke home saat event logout terpanggil
-            response()->redirectTo('/')->send();
-        });
-
-        // Menambahkan tombol "Kembali ke Beranda" di halaman Login Admin Filament
+        // 1. Tombol "Kembali ke Beranda" di Halaman Login Filament
         FilamentView::registerRenderHook(
             PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
             fn (): string => Blade::render('

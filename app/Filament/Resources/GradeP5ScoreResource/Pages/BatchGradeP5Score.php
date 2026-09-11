@@ -186,5 +186,7 @@ class BatchGradeP5Score extends Page implements HasForms
             ->title('Berhasil Menyimpan Nilai P5!')
             ->success()
             ->send();
+        
+        $this->redirect(GradeP5ScoreResource::getUrl('index'));
     }
 }

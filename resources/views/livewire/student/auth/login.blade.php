@@ -1,84 +1,63 @@
-<div class="min-h-screen bg-slate-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-    
-    <div class="sm:mx-auto sm:w-full sm:max-w-md">
-        <div class="text-center">
-            <h2 class="text-2xl font-bold tracking-tight text-slate-900">
-                Portal Siswa
-            </h2>
-            <p class="mt-2 text-sm text-slate-600">
-                Silakan masuk menggunakan akun siswa Anda
-            </p>
-        </div>
-    </div>
+<div class="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+    <div class="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
 
-    <div class="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
-        {{-- Card Form Login --}}
-        <div class="bg-white py-8 px-4 shadow-sm border border-slate-200 sm:rounded-2xl sm:px-10">
-            
-            <form wire:submit.prevent="login" class="space-y-5">
-                {{-- Email / NISN Field --}}
-                <div>
-                    <label for="email" class="block text-sm font-medium text-slate-700">
-                        NISN / Email
-                    </label>
-                    <div class="mt-1">
-                        <input 
-                            wire:model="email" 
-                            id="email" 
-                            type="text" 
-                            required 
-                            class="w-full px-3 py-2 border border-slate-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                            placeholder="Masukkan NISN atau Email"
-                        >
-                    </div>
-                    @error('email') 
-                        <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> 
-                    @enderror
-                </div>
+        <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">
+            Login Portal Siswa
+        </h2>
 
-                {{-- Password Field --}}
-                <div>
-                    <label for="password" class="block text-sm font-medium text-slate-700">
-                        Password
-                    </label>
-                    <div class="mt-1">
-                        <input 
-                            wire:model="password" 
-                            id="password" 
-                            type="password" 
-                            required 
-                            class="w-full px-3 py-2 border border-slate-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                            placeholder="••••••••"
-                        >
-                    </div>
-                    @error('password') 
-                        <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> 
-                    @enderror
-                </div>
+        <form wire:submit="login" class="space-y-5">
 
-                {{-- Submit Button & Kembali ke Beranda (Sejajar dalam 1 Container) --}}
-                <div class="space-y-3 pt-2">
-                    <button 
-                        type="submit" 
-                        class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all"
-                    >
-                        <span wire:loading.remove wire:target="login">Masuk Sekarang</span>
-                        <span wire:loading wire:target="login">Memproses...</span>
-                    </button>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    NISN / Email
+                </label>
 
-                    <a 
-                        href="{{ route('home') }}" 
-                        wire:navigate 
-                        class="w-full flex justify-center items-center gap-2 py-2.5 px-4 border border-slate-300 rounded-xl shadow-sm text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-all"
-                    >
-                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                        </svg>
-                        <span>Kembali ke Beranda</span>
-                    </a>
-                </div>
-            </form>
+                <input
+                    type="text"
+                    wire:model="email"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                >
 
-        </div>
+                @error('email')
+                    <span class="text-xs text-rose-600 mt-1 block">
+                        {{ $message }}
+                    </span>
+                @enderror
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Password
+                </label>
+
+                <input
+                    type="password"
+                    wire:model="password"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                >
+
+                @error('password')
+                    <span class="text-xs text-rose-600 mt-1 block">
+                        {{ $message }}
+                    </span>
+                @enderror
+            </div>
+
+            <button
+                type="submit"
+                wire:loading.attr="disabled"
+                class="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md transition duration-200"
+            >
+                <span wire:loading.remove>
+                    Masuk Portal Siswa
+                </span>
+
+                <span wire:loading>
+                    Memproses...
+                </span>
+            </button>
+
+        </form>
+
     </div>
 </div>

@@ -200,5 +200,6 @@ class BatchStudentSaving extends Page implements HasForms
 
         // Reset nilai inputan nominal dan keterangan tanpa error Closure
         $this->resetStudentAmounts();
+        $this->redirect(StudentSavingResource::getUrl('index'));
     }
 }

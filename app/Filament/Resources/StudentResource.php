@@ -13,6 +13,8 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use App\Imports\StudentsImport; 
 use App\Exports\StudentsExport; 
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class StudentResource extends Resource
@@ -31,6 +33,44 @@ class StudentResource extends Resource
     protected static ?string $modelLabel = 'Siswa';
 
     protected static ?int $navigationSort = 2;
+
+    /**
+     * Override Query Scope agar Guru bisa melihat siswa di kelasnya
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = Auth::user();
+
+        if (! $user) {
+            return $query;
+        }
+
+        // 1. Jika User adalah GURU
+        if ($user->hasRole('teacher')) {
+            $teacher = $user->teacher;
+
+            if (! $teacher) {
+                return $query->whereRaw('1 = 0'); // Jika profil teacher tidak ada, sembunyikan semua
+            }
+
+            // Ambil ID kelas wali kelas & ID kelas mapel yang diajar
+            $homeroomClassIds = $teacher->homeroomClasses()->pluck('id')->toArray();
+            $subjectClassIds  = $teacher->teacherSubjectClasses()->pluck('class_id')->toArray();
+            
+            $allClassIds = array_unique(array_merge($homeroomClassIds, $subjectClassIds));
+
+            return $query->whereIn('class_id', $allClassIds);
+        }
+
+        // 2. Jika User adalah SISWA (hanya lihat diri sendiri)
+        if ($user->hasRole('student')) {
+            return $query->where('user_id', $user->id);
+        }
+
+        // 3. Admin & Headmaster (melihat seluruh siswa)
+        return $query;
+    }
 
     public static function form(Form $form): Form
     {

@@ -3,42 +3,99 @@
 @config '../../../../tailwind.config.js';
 
 /* =========================================================
-   1. TOPBAR FULL GELAP (MEMAKSA SEMUA ELEMENT CONTAINER)
+   0. NATIVEPHP & RESPONSIVE GLOBAL FIXES (MOBILE/ANDROID)
    ========================================================= */
-.fi-topbar,
-header.fi-topbar,
-nav.fi-topbar,
-.fi-topbar-nav,
-.fi-topbar > div,
-.fi-topbar header {
-    background-color: #002b5b !important; /* Biru Gelap Dapodik */
-    border-bottom: 3px solid #0284c7 !important; /* Garis Aksen Biru Terang */
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+@layer base {
+    /* Menghindari horizontal scroll liar & optimasi sentuhan layar HP */
+    html, body {
+        max-width: 100vw;
+        overflow-x: hidden;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        /* Safe Area Inset untuk HP Modern / Notch NativePHP */
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* Mencegah iOS/Android auto-zoom saat form di-fokuskan */
+    input, select, textarea {
+        font-size: 16px !important;
+    }
 }
 
-/* Memaksa Semua Teks, Icon, dan Button di Topbar Kanan Berwarna Putih */
-.fi-topbar *,
-.fi-topbar-item-label,
-.fi-topbar button,
-.fi-topbar button span,
-.fi-topbar svg,
-.fi-topbar a {
-    color: #ffffff !important;
+/* Penyesuaian Komponen Filament di Layar HP (Mobile-Only) */
+@media (max-width: 640px) {
+    /* Memaksa kontainer tabel Filament bisa di-scroll horizontal tanpa merusak layout */
+    .fi-ta-content,
+    .fi-ta-table-container {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Membuat Modal & Slide-over Filament fullscreen di Layar HP */
+    .fi-modal-window {
+        max-width: 100vw !important;
+        height: 100vh !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+    }
+
+    /* Menyesuaikan padding main area agar pas dengan ukuran layar Android */
+    .fi-main {
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+    }
 }
 
-/* Avatar / Inisial User di Topbar */
-.fi-topbar-user-menu button div,
-.fi-avatar {
-    background-color: #0284c7 !important;
-    color: #ffffff !important;
-    border: 2px solid rgba(255, 255, 255, 0.4) !important;
+/* =========================================================
+   1. LAYOUT STRUCTURE & OVERLAP FIX (DESKTOP & MOBILE)
+   ========================================================= */
+.fi-layout {
+    display: flex !important;
+    width: 100% !important;
+    min-height: 100vh !important;
+}
+
+/* Kunci ukuran dan posisi fixed Sidebar */
+aside.fi-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    z-index: 35 !important;
+    width: 16rem !important; /* Lebar standar sidebar 256px */
+    height: 100vh !important;
+    background-color: #001f3f !important; /* Biru Tua Sidebar */
+    border-right: 1px solid #002b5b !important;
+}
+
+/* Dorong Container Utama ke kanan sejauh lebar Sidebar pada Desktop */
+@media (min-width: 1024px) {
+    .fi-main-ctn {
+        margin-left: 16rem !important; /* Menggeser area konten sejauh 256px ke kanan */
+        width: calc(100% - 16rem) !important; /* Lebar area konten mengambil sisa ruang */
+    }
+}
+
+/* Khusus layar Mobile/Tablet */
+@media (max-width: 1023px) {
+    .fi-main-ctn {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+}
+
+/* Pengaturan Padding Konten Utama */
+.fi-main {
+    padding: 1.5rem !important;
+    width: 100% !important;
 }
 
 /* =========================================================
    2. HEADER LOGO KIRI ATAS (DIBEDAKAN WARNANYA DARI SIDEBAR)
    ========================================================= */
 .fi-sidebar-header {
-    background-color: #00122e !important; /* Navy Sangat Gelap (Beda dari Sidebar) */
+    background-color: #00122e !important; /* Navy Sangat Gelap */
     border-bottom: 3px solid #0284c7 !important;
     border-right: 1px solid #002b5b !important;
 }
@@ -51,13 +108,8 @@ nav.fi-topbar,
 }
 
 /* =========================================================
-   3. SIDEBAR NAVIGATION (BIRU TUA KEMENDIKBUD)
+   3. SIDEBAR NAVIGATION ITEM STYLING
    ========================================================= */
-aside.fi-sidebar {
-    background-color: #001f3f !important; /* Biru Tua Sidebar */
-    border-right: 1px solid #002b5b !important;
-}
-
 .fi-sidebar-group-label,
 .fi-sidebar-item-label,
 .fi-sidebar-item-button,
@@ -80,31 +132,76 @@ aside.fi-sidebar {
 }
 
 /* =========================================================
-   4. DROPDOWN PROFILE / LOGOUT (TETAP KONTRAST & TERBACA)
+   4. TOPBAR & NAVIGATION HEADER
    ========================================================= */
-div[class*="fi-dropdown-panel"],
+.fi-topbar,
+header.fi-topbar,
+nav.fi-topbar {
+    background-color: #002b5b !important;
+    border-bottom: 3px solid #0284c7 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Memaksa Ikon Hamburger (Sidebar Toggle Button) Tampil */
+.fi-topbar-open-sidebar-btn,
+.fi-topbar-close-sidebar-btn,
+button[aria-label*="sidebar"],
+.fi-topbar button {
+    display: inline-flex !important;
+    visibility: visible !important;
+    color: #ffffff !important;
+}
+
+.fi-topbar svg {
+    color: #ffffff !important;
+    width: 1.5rem !important;
+    height: 1.5rem !important;
+}
+
+/* Avatar & Nama User di Topbar Kanan */
+.fi-topbar-user-menu button {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    color: #ffffff !important;
+}
+
+.fi-avatar {
+    background-color: #0284c7 !important;
+    color: #ffffff !important;
+    border: 2px solid rgba(255, 255, 255, 0.4) !important;
+}
+
+/* =========================================================
+   5. DROPDOWN PROFILE / LOGOUT FIX
+   ========================================================= */
 .fi-dropdown-panel {
     background-color: #ffffff !important;
     border: 1px solid #e2e8f0 !important;
     box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.25) !important;
+    z-index: 50 !important;
 }
 
-.fi-dropdown-panel *,
-.fi-dropdown-list-item,
-.fi-dropdown-list-item *,
-.fi-dropdown-header *,
-button.fi-dropdown-list-item span {
-    color: #0f172a !important; /* Teks Hitam Pekat */
+.fi-dropdown-list-item {
+    color: #0f172a !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    padding: 0.5rem 1rem !important;
+}
+
+.fi-dropdown-list-item * {
+    color: #0f172a !important;
 }
 
 .fi-dropdown-list-item:hover,
 .fi-dropdown-list-item:hover * {
     background-color: #fef2f2 !important; 
-    color: #dc2626 !important; /* Merah Saat Hover Logout */
+    color: #dc2626 !important;
 }
 
 /* =========================================================
-   5. HALAMAN LOGIN & BODY
+   6. HALAMAN LOGIN & BODY
    ========================================================= */
 body, .fi-body { 
     background-color: #f1f5f9 !important; 

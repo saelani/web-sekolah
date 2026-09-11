@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreatePostCategory extends CreateRecord
 {
     protected static string $resource = PostCategoryResource::class;
+
+    protected function getRedirectUrl(): string
+    {
+        return $resource = static::getResource()::getUrl('index');
+    }
 }

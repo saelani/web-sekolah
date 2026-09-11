@@ -9,9 +9,11 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use App\Traits\HasAdminOrHeadmasterAccess;
 
 class SchoolProfileResource extends Resource
 {
+    use HasAdminOrHeadmasterAccess;
     protected static ?string $model = SchoolProfile::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';

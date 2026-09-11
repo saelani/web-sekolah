@@ -2,14 +2,17 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 
 // Livewire Component Frontend Public
 use App\Livewire\Public\HomeScreen;
 use App\Livewire\Public\PostDetail;
 
-// Livewire Component Portal Siswa
-use App\Livewire\Student\Auth\Login as StudentLogin;
+// Livewire Component Dashboard Siswa
 use App\Livewire\Student\Dashboard as StudentDashboard;
+
+// Controller Auth Siswa Standar
+use App\Http\Controllers\Student\AuthController;
 
 // Middleware Proteksi Siswa
 use App\Http\Middleware\EnsureUserIsStudent;
@@ -29,35 +32,31 @@ Route::get('/berita/{post:slug}', PostDetail::class)->name('berita.show');
 
 /*
 |--------------------------------------------------------------------------
-| Web Routes - Portal Khusus Siswa
+| Web Routes - Auth Siswa (Standard Controller)
 |--------------------------------------------------------------------------
 */
 
-// Guest Route (Hanya bisa diakses jika belum login)
-Route::middleware('guest')->group(function () {
-    Route::get('/siswa/login', StudentLogin::class)->name('student.login');
-});
+Route::get('/siswa/login', [AuthController::class, 'showLoginForm'])->name('student.login');
+Route::post('/siswa/login', [AuthController::class, 'login'])->name('student.login.post');
 
-// Protected Routes (Hanya bisa diakses setelah login & dipastikan akun Siswa)
-Route::middleware(['auth', EnsureUserIsStudent::class])->prefix('siswa')->name('student.')->group(function () {
+
+/*
+|--------------------------------------------------------------------------
+| Web Routes - Portal Khusus Siswa (Protected)
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware([EnsureUserIsStudent::class])->prefix('siswa')->name('student.')->group(function () {
     
     // Dashboard Utama Siswa
     Route::get('/dashboard', StudentDashboard::class)->name('dashboard');
 
-    // Menu-menu Fitur Siswa (Aktifkan saat komponennya sudah dibuat)
-    // Route::get('/profil', \App\Livewire\Student\Profile::class)->name('profile');
-    // Route::get('/tabungan', \App\Livewire\Student\Savings::class)->name('savings');
-    // Route::get('/kehadiran', \App\Livewire\Student\Attendance::class)->name('attendance');
-    // Route::get('/nilai', \App\Livewire\Student\Grades::class)->name('grades');
-    // Route::get('/cbt', \App\Livewire\Student\Cbt::class)->name('cbt');
-
     // Logout khusus siswa
-    Route::get('/logout', function () {
-        Auth::logout();
-        request()->session()->invalidate();
-        request()->session()->regenerateToken();
+    Route::post('/logout', function (Request $request) {
+        Auth::guard('student')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
-        // Gunakan redirect()->to() atau redirect()->route() standar Laravel
         return redirect()->route('student.login');
     })->name('logout');
 });

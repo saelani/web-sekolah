@@ -16,6 +16,7 @@ use Filament\Tables\Table;
 
 class AcademicCalendarResource extends Resource
 {
+    
     protected static ?string $model = AcademicCalendar::class;
     protected static ?string $navigationIcon = 'heroicon-o-calendar';
     protected static ?string $navigationGroup = 'Akademik SD';

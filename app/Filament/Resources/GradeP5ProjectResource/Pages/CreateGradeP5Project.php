@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateGradeP5Project extends CreateRecord
 {
     protected static string $resource = GradeP5ProjectResource::class;
+
+    protected function getRedirectUrl(): string
+    {
+        return $resource = static::getResource()::getUrl('index');
+    }
 }

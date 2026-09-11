@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateLearningObjective extends CreateRecord
 {
     protected static string $resource = LearningObjectiveResource::class;
+
+    protected function getRedirectUrl(): string
+    {
+        return $resource = static::getResource()::getUrl('index');
+    }
 }

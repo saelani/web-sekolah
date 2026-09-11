@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateGradeReportCard extends CreateRecord
 {
     protected static string $resource = GradeReportCardResource::class;
+
+    protected function getRedirectUrl(): string
+    {
+        return $resource = static::getResource()::getUrl('index');
+    }
 }

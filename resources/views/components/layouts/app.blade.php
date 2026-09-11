@@ -12,15 +12,15 @@
     </head>
     <body class="flex flex-col min-h-screen font-sans text-gray-900 bg-gray-50 antialiased">
         
-        {{-- HEADER STATIS (Di luar Livewire DOM) --}}
+        {{-- HEADER --}}
         <x-header />
 
-        {{-- MAIN CONTENT (Hanya area ini yang diproses Livewire) --}}
+        {{-- MAIN CONTENT --}}
         <main class="flex-grow">
             {{ $slot }}
         </main>
 
-        {{-- FOOTER STATIS (Di luar Livewire DOM) --}}
+        {{-- FOOTER --}}
         <x-footer />
 
         @livewireScripts

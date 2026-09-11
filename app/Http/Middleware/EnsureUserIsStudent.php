@@ -11,12 +11,32 @@ class EnsureUserIsStudent
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // Jika belum login atau akun user tidak punya data student
-        if (! Auth::check() || ! Auth::user()->student) {
-            Auth::logout();
-            return redirect()->route('student.login')->withErrors([
-                'email' => 'Akses ditolak. Halaman ini hanya untuk siswa.'
-            ]);
+        $guard = Auth::guard('student');
+
+        // Belum login sebagai siswa
+        if (! $guard->check()) {
+            return redirect()
+                ->route('student.login')
+                ->withErrors([
+                    'email' => 'Silakan login terlebih dahulu.',
+                ]);
+        }
+
+        $user = $guard->user();
+
+        // Pastikan user memiliki relasi student
+        if (! $user || ! $user->student) {
+
+            $guard->logout();
+
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()
+                ->route('student.login')
+                ->withErrors([
+                    'email' => 'Akses ditolak. Halaman ini hanya untuk akun siswa.',
+                ]);
         }
 
         return $next($request);

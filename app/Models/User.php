@@ -9,11 +9,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens; // 1. Import Trait Sanctum
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable implements FilamentUser
 {
-    use HasFactory, Notifiable, HasApiTokens; // 2. Tambahkan HasApiTokens di sini
+    use HasFactory, Notifiable, HasApiTokens;
 
     protected $table = 'sys_users';
 
@@ -23,8 +23,8 @@ class User extends Authenticatable implements FilamentUser
         'name',
         'email',
         'password',
-        'role',      // Ditambahkan agar bisa diisi
-        'role_type', // Ditambahkan jika kolom ini digunakan
+        'role',
+        'role_type',
     ];
 
     protected $hidden = [
@@ -40,9 +40,20 @@ class User extends Authenticatable implements FilamentUser
         ];
     }
 
+    /**
+     * Kontrak Akses Panel Filament Admin
+     * HANYA MENGEMBALIKAN BOOLEAN (true/false)
+     * DILARANG PAKAI redirect()->send() ATAU exit DI SINI!
+     */
     public function canAccessPanel(Panel $panel): bool
     {
-        return true; 
+        // Jika user adalah siswa, kembalikan false (akses ditolak)
+        if ($this->hasRole('student')) {
+            return false;
+        }
+
+        // Hanya izinkan admin, teacher, dan headmaster
+        return $this->hasRole('admin', 'teacher', 'headmaster');
     }
 
     /**
@@ -51,10 +62,7 @@ class User extends Authenticatable implements FilamentUser
      */
     public function hasRole(...$roles): bool
     {
-        // Ratakan argumen jika dikirim berupa array
         $roles = is_array($roles[0] ?? null) ? $roles[0] : $roles;
-
-        // Ambil nilai role dari atribut di tabel sys_users
         $userRole = $this->role ?? $this->role_type ?? '';
 
         return in_array($userRole, $roles, true);

@@ -1,34 +1,144 @@
 <div class="bg-gray-50 min-h-screen">
-    {{-- Hero Banner / Profil Sekolah (Warna disesuaikan dengan header bg-slate-900) --}}
-    <section class="bg-slate-900 text-white py-16 px-4 sm:px-6 lg:px-8 border-b border-slate-800">
-        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
-            <div class="space-y-4 max-w-2xl">
-                <h1 class="text-4xl font-extrabold tracking-tight sm:text-5xl text-white">
-                    {{ $profile->school_name ?? 'Selamat Datang di Web Sekolah' }}
+    {{-- Hero Banner / Profil Sekolah --}}
+    {{-- Hero Banner / Profil Sekolah --}}
+    <section class="relative bg-gradient-to-b from-slate-950 via-slate-900 to-slate-900 text-white pt-10 pb-16 px-4 sm:px-6 lg:px-8 border-b border-slate-800/80 overflow-hidden">
+        {{-- Background Glow Effect --}}
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left">
+            
+            {{-- Sisi Kiri: Text Profil (Rata Tengah di HP, Rata Kiri di Desktop) --}}
+            <div class="space-y-4 max-w-2xl flex flex-col items-center md:items-start">
+                <h1 class="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
+                    {{ $profile->school_name ?? 'SDN 2 Babakanmulya' }}
                 </h1>
-                <p class="text-slate-300 text-lg">
+                
+                <p class="text-slate-300 text-base sm:text-lg max-w-xl font-normal leading-relaxed">
                     {{ $profile->vision ?? 'Mewujudkan generasi cerdas, berkarakter, dan berprestasi.' }}
                 </p>
-                <div class="pt-2">
-                    <span class="inline-block bg-slate-800 border border-slate-700 text-slate-200 px-4 py-2 rounded-lg text-sm font-semibold shadow-sm">
-                        Akreditasi: {{ $profile->accreditation ?? 'A' }} | NPSN: {{ $profile->npsn ?? '-' }}
+                
+                <div class="pt-1">
+                    <span class="inline-flex items-center gap-2 bg-slate-800/90 border border-slate-700/80 text-slate-200 px-4 py-2 rounded-xl text-xs sm:text-sm font-medium shadow-inner backdrop-blur-sm">
+                        <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        Akreditasi: <strong class="text-white">{{ $profile->accreditation ?? 'A' }}</strong> 
+                        <span class="text-slate-600">|</span> 
+                        NPSN: <strong class="text-white">{{ $profile->npsn ?? '20213175' }}</strong>
                     </span>
                 </div>
             </div>
 
-            {{-- Container Logo dengan trik menghilangkan background hitam --}}
+            {{-- Sisi Kanan: Logo Sekolah (Rata Tengah di HP, Kanan di Desktop) --}}
             @if($profile?->logo_path)
-                <div class="flex-shrink-0">
-                    <img 
-                        src="{{ asset('storage/' . $profile->logo_path) }}" 
-                        alt="Logo Sekolah" 
-                        class="h-40 w-40 object-contain mix-blend-screen filter drop-shadow-md"
-                    >
+                <div class="flex-shrink-0 order-first md:order-last">
+                    <div class="relative group">
+                        <div class="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-300"></div>
+                        <img 
+                            src="{{ asset('storage/' . $profile->logo_path) }}" 
+                            alt="Logo Sekolah" 
+                            class="relative h-28 sm:h-36 lg:h-40 w-auto object-contain filter drop-shadow-xl transition-transform duration-300 group-hover:scale-105"
+                        >
+                    </div>
                 </div>
             @endif
+
         </div>
     </section>
 
+    {{-- SECTION CAROUSEL FOTO --}}
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 sm:-mt-8">
+        <div x-data="{ 
+                activeSlide: 0,
+                totalSlides: {{ $posts->whereNotNull('thumbnail_path')->take(5)->count() > 0 ? $posts->whereNotNull('thumbnail_path')->take(5)->count() : 3 }},
+                timer: null,
+                init() {
+                    this.timer = setInterval(() => {
+                        this.activeSlide = (this.activeSlide + 1) % this.totalSlides;
+                    }, 5000);
+                }
+             }" 
+             class="relative w-full h-[260px] sm:h-[400px] lg:h-[450px] rounded-2xl overflow-hidden shadow-2xl border-4 border-white bg-slate-900">
+
+            {{-- OPSI A: Foto Dinamis dari Berita/Kegiatan Terbaru --}}
+            @php
+                $carouselPosts = $posts->whereNotNull('thumbnail_path')->take(5);
+            @endphp
+
+            @if($carouselPosts->count() > 0)
+                @foreach($carouselPosts as $index => $cPost)
+                    <div x-show="activeSlide === {{ $index }}"
+                         x-transition:enter="transition ease-out duration-700"
+                         x-transition:enter-start="opacity-0 scale-95"
+                         x-transition:enter-end="opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-300"
+                         x-transition:leave-start="opacity-100 scale-100"
+                         x-transition:leave-end="opacity-0 scale-95"
+                         class="absolute inset-0 w-full h-full"
+                         style="display: none;">
+                        
+                        <img src="{{ asset('storage/' . $cPost->thumbnail_path) }}" alt="{{ $cPost->title }}" class="w-full h-full object-cover">
+                        
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/30 to-transparent flex flex-col justify-end p-6 sm:p-10 text-white">
+                            <span class="text-xs font-bold text-blue-400 uppercase tracking-wider mb-1">
+                                {{ $cPost->category?->name ?? 'Kegiatan Sekolah' }}
+                            </span>
+                            <h3 class="text-lg sm:text-2xl lg:text-3xl font-bold mb-1 tracking-wide drop-shadow-md">
+                                {{ $cPost->title }}
+                            </h3>
+                            <p class="text-xs sm:text-sm text-slate-200 max-w-2xl line-clamp-2">
+                                {{ $cPost->excerpt }}
+                            </p>
+                        </div>
+                    </div>
+                @endforeach
+            @else
+                {{-- OPSI B: Foto Fallback (Default) jika Belum Ada Foto Berita --}}
+                <div x-show="activeSlide === 0" class="absolute inset-0 w-full h-full">
+                    <img src="https://images.unsplash.com/photo-1580582932707-520aed937b7b?q=80&w=1200" alt="Gedung Sekolah" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent p-6 text-white flex items-end">
+                        <h3 class="text-xl font-bold">Gedung & Lingkungan Sekolah</h3>
+                    </div>
+                </div>
+                <div x-show="activeSlide === 1" class="absolute inset-0 w-full h-full" style="display: none;">
+                    <img src="https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=1200" alt="Kegiatan Belajar" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent p-6 text-white flex items-end">
+                        <h3 class="text-xl font-bold">Kegiatan Belajar Mengajar Interaktif</h3>
+                    </div>
+                </div>
+                <div x-show="activeSlide === 2" class="absolute inset-0 w-full h-full" style="display: none;">
+                    <img src="https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=1200" alt="Perpustakaan" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent p-6 text-white flex items-end">
+                        <h3 class="text-xl font-bold">Fasilitas Perpustakaan Digital</h3>
+                    </div>
+                </div>
+            @endif
+
+            {{-- Tombol Navigasi Kiri / Kanan --}}
+            <button @click="activeSlide = (activeSlide === 0) ? totalSlides - 1 : activeSlide - 1" 
+                    class="absolute left-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 rounded-full bg-slate-900/40 hover:bg-slate-900/80 text-white backdrop-blur-sm transition border border-white/20 z-10">
+                <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+                </svg>
+            </button>
+
+            <button @click="activeSlide = (activeSlide + 1) % totalSlides" 
+                    class="absolute right-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 rounded-full bg-slate-900/40 hover:bg-slate-900/80 text-white backdrop-blur-sm transition border border-white/20 z-10">
+                <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+                </svg>
+            </button>
+
+            {{-- Indikator Titik (Dots) --}}
+            <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+                <template x-for="i in totalSlides" :key="i">
+                    <button @click="activeSlide = i - 1" 
+                            :class="activeSlide === (i - 1) ? 'w-8 bg-blue-500' : 'w-2.5 bg-white/60 hover:bg-white'"
+                            class="h-2.5 rounded-full transition-all duration-300"></button>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    {{-- Content Utama --}}
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-16">
         
         {{-- Section Berita & Artikel --}}

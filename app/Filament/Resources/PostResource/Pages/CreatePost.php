@@ -16,4 +16,9 @@ class CreatePost extends CreateRecord
 
         return $data;
     }
+
+    protected function getRedirectUrl(): string
+    {
+        return $resource = static::getResource()::getUrl('index');
+    }
 }

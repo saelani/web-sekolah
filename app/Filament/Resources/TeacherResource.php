@@ -13,10 +13,12 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use App\Traits\HasAdminOrHeadmasterAccess;
 
 class TeacherResource extends Resource
 {
     use HasRoleScope;
+    use HasAdminOrHeadmasterAccess;
 
     protected static ?string $model = Teacher::class;
 

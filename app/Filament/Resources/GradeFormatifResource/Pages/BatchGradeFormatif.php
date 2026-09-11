@@ -294,5 +294,7 @@ class BatchGradeFormatif extends Page implements HasForms
             ->body("Seluruh nilai {$type} berhasil diperbarui.")
             ->success()
             ->send();
+
+        $this->redirect(GradeFormatifResource::getUrl('index'));
     }
 }

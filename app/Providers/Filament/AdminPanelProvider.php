@@ -42,6 +42,7 @@ class AdminPanelProvider extends PanelProvider
                 'success' => Color::Hex('#16a34a'),
                 'gray'    => Color::Slate,
             ])
+            /* Memastikan Sidebar Bisa Di-toggle & Hamburger Icon Aktif */
             ->sidebarCollapsibleOnDesktop()
             ->maxContentWidth('full')
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
@@ -72,6 +73,16 @@ class AdminPanelProvider extends PanelProvider
 
     public function boot(): void
     {
+        // 1. INJECT NAMA USER DI SEBELAH AVATAR TOPBAR
+        FilamentView::registerRenderHook(
+            'panels::user-menu.before',
+            fn (): string => '<div class="hidden sm:flex flex-col text-right mr-2 justify-center">
+                <span class="text-xs font-bold text-white leading-tight">' . (auth()->user()?->name ?? 'User') . '</span>
+                <span class="text-[10px] text-sky-200 leading-tight">' . (auth()->user()?->email ?? '') . '</span>
+            </div>'
+        );
+
+        // 2. STYLES & FIX IKON SIDEBAR HAMBURGER
         FilamentView::registerRenderHook(
             'panels::styles.after',
             fn (): string => '<style>
@@ -85,12 +96,22 @@ class AdminPanelProvider extends PanelProvider
                     border-bottom: 3px solid #0284c7 !important; 
                 }
 
-                /* Teks & Tombol di Topbar */
+                /* Menampilkan & Memperbaiki Warna Ikon Sidebar Hamburger */
                 .fi-topbar button, 
-                .fi-topbar span, 
                 .fi-topbar svg, 
                 .fi-topbar a { 
                     color: #ffffff !important; 
+                }
+
+                /* Paksa Tombol Sidebar Toggle Muncul di Mobile & Desktop */
+                .fi-topbar-open-sidebar-btn,
+                .fi-topbar-close-sidebar-btn,
+                button[aria-label*="sidebar"],
+                button[aria-label*="Sidebar"] {
+                    display: inline-flex !important;
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                    color: #ffffff !important;
                 }
 
                 /* Avatar / Lingkaran Inisial Nama User */
@@ -99,6 +120,11 @@ class AdminPanelProvider extends PanelProvider
                     background-color: #0284c7 !important;
                     color: #ffffff !important;
                     border: 2px solid #ffffff !important;
+                }
+
+                .fi-topbar-user-menu button {
+                    display: flex !important;
+                    align-items: center !important;
                 }
 
                 /* =========================================================

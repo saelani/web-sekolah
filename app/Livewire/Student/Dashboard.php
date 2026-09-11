@@ -11,18 +11,14 @@ use App\Models\Subject;
 use App\Models\CbtExam;
 use App\Models\CbtExamSession;
 use App\Models\CbtStudentAnswer;
+use App\Models\CbtOption;
 use App\Models\Enrollment;
 use App\Models\AcademicYear;
 
 class Dashboard extends Component
 {
-    // Navigasi Tab ('dashboard', 'materi', 'ujian', 'jadwal')
     public $activeTab = 'dashboard';
-
-    // Filter Dropdown Mapel (Tab Materi & Ujian)
     public $selectedSubject = '';
-
-    // Data Siswa & Status Preview Admin
     public $currentStudent;
     public bool $isAdminPreview = false;
 
@@ -32,18 +28,9 @@ class Dashboard extends Component
     public ?CbtExamSession $activeSession = null;
     public array $questions = [];
     public array $userAnswers = [];
+    public array $essayAnswers = [];
     public int $currentIndex = 0;
     public int $remainingSeconds = 0;
-
-    public function logout()
-    {
-        Auth::guard('student')->logout();
-        Auth::logout();
-        session()->invalidate();
-        session()->regenerateToken();
-
-        return $this->redirect(route('student.login'), navigate: true);
-    }
 
     private function resolveStudent()
     {
@@ -54,7 +41,7 @@ class Dashboard extends Component
             $student = $authUser->student ?? Student::where('user_id', $authUser->id)->first();
         }
 
-        if (!$student) {
+        if (! $student && $authUser && in_array($authUser->role ?? '', ['admin', 'teacher', 'headmaster'])) {
             $student = Student::first();
             $this->isAdminPreview = (bool) $student;
         } else {
@@ -65,17 +52,13 @@ class Dashboard extends Component
         return $student;
     }
 
-    // ==========================================
-    // METHOD PENGERJAAN UJIAN CBT
-    // ==========================================
     public function startExam($examId)
     {
         $studentUser = $this->resolveStudent();
-        if (!$studentUser) return;
+        if (! $studentUser) return;
 
-        $this->activeExam = CbtExam::with('questions')->findOrFail($examId);
+        $this->activeExam = CbtExam::with(['questions.options'])->findOrFail($examId);
 
-        // Buat atau Ambil Sesi Ujian berdasarkan student_id
         $this->activeSession = CbtExamSession::firstOrCreate(
             [
                 'cbt_exam_id' => $this->activeExam->id,
@@ -88,45 +71,71 @@ class Dashboard extends Component
             ]
         );
 
-        // Cegah masuk jika ujian sudah disubmit / selesai
         if ($this->activeSession->status === 'completed' || $this->activeSession->status === 'submitted' || $this->activeSession->submitted_at) {
             return;
         }
 
-        // Setup Soal
-        $questionList = $this->activeExam->questions;
+        $questionCollection = $this->activeExam->questions;
         if ($this->activeExam->randomize_questions) {
-            $questionList = $questionList->shuffle();
+            $questionCollection = $questionCollection->shuffle();
         }
-        $this->questions = $questionList->toArray();
 
-        // Hitung Sisa Waktu (Detik) berdasarkan max_end_time
+        $this->questions = $questionCollection->map(function ($q) {
+            $options = $q->options;
+            if ($this->activeExam->randomize_options ?? false) {
+                $options = $options->shuffle();
+            }
+
+            return [
+                'id'            => $q->id,
+                'type'          => $q->type ?? $q->question_type ?? (count($options) > 0 ? 'multiple_choice' : 'essay'),
+                'question_text' => is_array($q->question_text) ? ($q->question_text['text'] ?? json_encode($q->question_text)) : $q->question_text,
+                'score_weight'  => $q->score_weight ?? 1,
+                'options'       => $options->map(function ($opt) {
+                    return [
+                        'id'          => $opt->id,
+                        'option_text' => $opt->option_text ?? $opt->text ?? '',
+                    ];
+                })->toArray(),
+            ];
+        })->values()->toArray();
+
         $this->remainingSeconds = max(0, now()->diffInSeconds($this->activeSession->max_end_time, false));
 
-        // Muat Jawaban yang Pernah Disimpan
-        $existingAnswers = CbtStudentAnswer::where('cbt_exam_session_id', $this->activeSession->id)
-            ->pluck('selected_answer', 'cbt_question_id');
+        // Ambil semua jawaban yang pernah disimpan untuk sesi ini
+        $existingAnswers = CbtStudentAnswer::where('cbt_exam_session_id', $this->activeSession->id)->get();
 
         $this->userAnswers = [];
-        foreach ($existingAnswers as $qId => $ans) {
-            $this->userAnswers[$qId] = $ans;
+        $this->essayAnswers = [];
+
+        foreach ($this->questions as $q) {
+            $qId = $q['id'];
+            $saved = $existingAnswers->firstWhere('cbt_question_id', $qId);
+
+            if ($saved) {
+                if ($q['type'] === 'essay' || empty($q['options'])) {
+                    $this->essayAnswers[$qId] = $saved->answer_text ?? '';
+                    if (trim($saved->answer_text ?? '') !== '') {
+                        $this->userAnswers[$qId] = 'essay_answered';
+                    }
+                } else {
+                    $this->userAnswers[$qId] = $saved->cbt_option_id;
+                }
+            }
         }
 
         $this->currentIndex = 0;
         $this->isTakingExam = true;
     }
 
-    public function saveAnswer($questionId, $answer)
+    public function saveAnswer($questionId, $optionId)
     {
-        if (!$this->activeSession) return;
+        if (! $this->activeSession) return;
 
-        $this->userAnswers[$questionId] = $answer;
-        $question = collect($this->questions)->firstWhere('id', $questionId);
-        
-        $cleanAnswerKey = strtoupper(trim(substr((string) $answer, 0, 1)));
-        $correctAnswerKey = strtoupper(trim((string) ($question['correct_answer'] ?? '')));
+        $this->userAnswers[$questionId] = $optionId;
 
-        $isCorrect = ($cleanAnswerKey === $correctAnswerKey) ? 1 : 0;
+        $selectedOption = CbtOption::find($optionId);
+        $isCorrect = $selectedOption ? (bool)$selectedOption->is_correct : false;
 
         CbtStudentAnswer::updateOrCreate(
             [
@@ -134,10 +143,36 @@ class Dashboard extends Component
                 'cbt_question_id'     => $questionId,
             ],
             [
-                'selected_answer' => $answer,
-                'is_correct'      => $isCorrect,
+                'cbt_option_id' => $optionId,
+                'answer_text'   => null,
+                'is_correct'    => $isCorrect,
             ]
         );
+    }
+
+    public function saveEssayAnswer($questionId)
+    {
+        if (! $this->activeSession) return;
+
+        $textAnswer = $this->essayAnswers[$questionId] ?? '';
+
+        CbtStudentAnswer::updateOrCreate(
+            [
+                'cbt_exam_session_id' => $this->activeSession->id,
+                'cbt_question_id'     => $questionId,
+            ],
+            [
+                'cbt_option_id' => null,
+                'answer_text'   => $textAnswer,
+                'is_correct'    => null,
+            ]
+        );
+
+        if (trim($textAnswer) !== '') {
+            $this->userAnswers[$questionId] = 'essay_answered';
+        } else {
+            unset($this->userAnswers[$questionId]);
+        }
     }
 
     public function goToNext()
@@ -161,9 +196,8 @@ class Dashboard extends Component
 
     public function submitExam()
     {
-        if (!$this->activeSession) return;
+        if (! $this->activeSession) return;
 
-        // Ambil semua jawaban yang tersimpan untuk sesi ini
         $answers = CbtStudentAnswer::where('cbt_exam_session_id', $this->activeSession->id)->get();
         
         $totalScoreWeight = array_sum(array_column($this->questions, 'score_weight')) ?: count($this->questions);
@@ -205,7 +239,6 @@ class Dashboard extends Component
         if ($studentUser) {
             $studentId = $studentUser->id;
 
-            // 1. Data Tabungan & Kehadiran
             $totalSavings = StudentSaving::where('student_id', $studentId)->sum('amount');
             $recentSavings = StudentSaving::where('student_id', $studentId)
                 ->latest()
@@ -217,34 +250,17 @@ class Dashboard extends Component
             $attendances['izin']  = StudentAttendance::where('student_id', $studentId)->where('status', 'izin')->count();
             $attendances['alfa']  = StudentAttendance::where('student_id', $studentId)->where('status', 'alfa')->count();
 
-            // 2. Fetch Enrollment Aktif Siswa
-            $activeAcademicYear = AcademicYear::where('is_active', 1)->first();
-            $enrollment = null;
-            
-            if ($activeAcademicYear) {
-                $enrollment = Enrollment::where('student_id', $studentId)
-                    ->where('academic_year_id', $activeAcademicYear->id)
-                    ->first();
-            }
-
-            // 3. Fetch Ujian CBT
             $cbtExamsQuery = CbtExam::where('is_active', true);
 
             $cbtExamsQuery->with(['subject', 'sessions' => function ($q) use ($studentId) {
                 $q->where('student_id', $studentId);
             }]);
 
-            if (!empty($this->selectedSubject)) {
+            if (! empty($this->selectedSubject)) {
                 $cbtExamsQuery->where('subject_id', $this->selectedSubject);
             }
 
             $cbtExams = $cbtExamsQuery->get();
-        }
-
-        // 4. Fetch Data Materi & Filter Subject
-        $subjectsQuery = Subject::query();
-        if (!empty($this->selectedSubject)) {
-            $subjectsQuery->where('id', $this->selectedSubject);
         }
 
         $allSubjects = Subject::orderBy('name', 'asc')->get();
@@ -257,7 +273,7 @@ class Dashboard extends Component
             'attendances'   => $attendances,
             'allSubjects'   => $allSubjects,
             'cbtExams'      => $cbtExams,
-            'schedules'     => $schedules,   
+            'schedules'     => $schedules, 
             'assignments'   => $assignments, 
         ])->layout('components.layouts.app');
     }

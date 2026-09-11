@@ -9,10 +9,12 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use App\Traits\HasRoleScope;
+use App\Traits\HasAdminOrHeadmasterAccess;
 
 class SubjectResource extends Resource
 {
     use HasRoleScope; // 2. Gunakan Trait di sini
+    use HasAdminOrHeadmasterAccess;
     protected static ?string $model = Subject::class;
     protected static ?string $navigationIcon = 'heroicon-o-book-open';
     protected static ?string $navigationGroup = 'Data Master';

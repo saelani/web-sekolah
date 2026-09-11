@@ -216,5 +216,7 @@ class BatchStudentAttendance extends Page implements HasForms
             ->body("Selesai memproses presensi: {$savedCount} data ketidakhadiran disimpan, {$deletedCount} data dikembalikan ke Hadir.")
             ->success()
             ->send();
+
+        $this->redirect(StudentAttendanceResource::getUrl('index'));
     }
 }

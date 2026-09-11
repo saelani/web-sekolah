@@ -23,18 +23,18 @@ class Login extends Component
         if (Auth::attempt(['email' => $this->email, 'password' => $this->password])) {
             session()->regenerate();
 
-            // Validasi: Pastikan akun ini benar-benar terhubung ke data siswa
+            // Cek apakah akun memiliki relasi student
             if (! Auth::user()->student) {
                 Auth::logout();
+                session()->invalidate();
+                session()->regenerateToken();
+
                 $this->addError('email', 'Akun ini bukan akun siswa. Silakan login via Admin Panel.');
                 return;
             }
 
-            // REDIRECT EKSPLISIT (Bukan intended) agar tidak masuk ke Filament/Admin Panel
-            //  return redirect(route('student.dashboard'));
-            // Gunakan redirectRoute milik Livewire
-            $this->redirectRoute('student.dashboard', navigate: true);
-            return;
+            // REDIRECT STANDAR BROWSER (Mencegah bentrokan AJAX Livewire & Filament Auth Guard)
+            return redirect()->intended(route('student.dashboard'));
         }
 
         $this->addError('email', 'NISN / Email atau Password yang Anda masukkan salah.');

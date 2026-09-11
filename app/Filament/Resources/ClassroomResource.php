@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Builder;
 class ClassroomResource extends Resource
 {
     use HasRoleScope;
+    
 
     protected static ?string $model = ClassRoom::class;
 

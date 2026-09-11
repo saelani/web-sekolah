@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\AcademicCalendar;
+use App\Models\ClassRoom;
 use Carbon\Carbon;
 use Filament\Widgets\Widget;
 
@@ -25,14 +26,14 @@ class AcademicCalendarWidget extends Widget
 
     public function nextMonth(): void
     {
-        $date = Carbon::createFromDate($this->currentYear, $this->currentMonth, 1)->addMonth();
+        $date = Carbon::createFromDate((int)$this->currentYear, (int)$this->currentMonth, 1)->addMonth();
         $this->currentMonth = $date->format('m');
         $this->currentYear = $date->format('Y');
     }
 
     public function previousMonth(): void
     {
-        $date = Carbon::createFromDate($this->currentYear, $this->currentMonth, 1)->subMonth();
+        $date = Carbon::createFromDate((int)$this->currentYear, (int)$this->currentMonth, 1)->subMonth();
         $this->currentMonth = $date->format('m');
         $this->currentYear = $date->format('Y');
     }
@@ -45,28 +46,27 @@ class AcademicCalendarWidget extends Widget
 
     public function getViewData(): array
     {
-        $startOfMonth = Carbon::createFromDate($this->currentYear, $this->currentMonth, 1)->startOfMonth();
+        $startOfMonth = Carbon::createFromDate((int)$this->currentYear, (int)$this->currentMonth, 1)->startOfMonth();
         $endOfMonth = $startOfMonth->copy()->endOfMonth();
 
-        // Cari hari pertama dalam grid (dimulai dari hari Senin)
+        // Cari hari pertama dalam grid (Senin) & hari terakhir (Minggu)
         $startDate = $startOfMonth->copy()->startOfWeek(Carbon::MONDAY);
-        // Cari hari terakhir dalam grid (diakhiri hari Minggu)
         $endDate = $endOfMonth->copy()->endOfWeek(Carbon::SUNDAY);
 
-        // Ambil data agenda dari database untuk bulan ini
+        // OPTIMASI QUERY: Ambil event berdasarkan rentang grid tampilan ($startDate sampai $endDate)
         $events = AcademicCalendar::with(['subject', 'classRoom', 'learningObjective'])
-            ->where(function ($query) use ($startOfMonth, $endOfMonth) {
-                $query->whereBetween('start_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
-                    ->orWhereBetween('end_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
-                    ->orWhere(function ($q) use ($startOfMonth, $endOfMonth) {
-                        $q->where('start_date', '<=', $startOfMonth->toDateString())
-                          ->where('end_date', '>=', $endOfMonth->toDateString());
+            ->where(function ($query) use ($startDate, $endDate) {
+                $query->whereBetween('start_date', [$startDate->toDateString(), $endDate->toDateString()])
+                    ->orWhereBetween('end_date', [$startDate->toDateString(), $endDate->toDateString()])
+                    ->orWhere(function ($q) use ($startDate, $endDate) {
+                        $q->where('start_date', '<=', $startDate->toDateString())
+                          ->where('end_date', '>=', $endDate->toDateString());
                     });
             })
             ->when($this->selectedClassId, fn($q) => $q->where('class_room_id', $this->selectedClassId))
             ->get();
 
-        // Buat matriks tanggal untuk grid 7 kolom (Senin - Minggu)
+        // Matriks tanggal untuk 7 kolom (Senin - Minggu)
         $days = [];
         $current = $startDate->copy();
 
@@ -75,14 +75,19 @@ class AcademicCalendarWidget extends Widget
 
             // Filter event yang jatuh pada tanggal ini
             $dayEvents = $events->filter(function ($event) use ($dateString) {
-                return $dateString >= $event->start_date->toDateString() && $dateString <= $event->end_date->toDateString();
+                $start = $event->start_date instanceof Carbon ? $event->start_date->toDateString() : Carbon::parse($event->start_date)->toDateString();
+                $end = $event->end_date instanceof Carbon ? $event->end_date->toDateString() : Carbon::parse($event->end_date)->toDateString();
+                
+                return $dateString >= $start && $dateString <= $end;
             });
 
             $days[] = [
-                'date'         => $current->copy(),
+                'date'           => $current->copy(),
+                'dateString'     => $dateString,
+                'dayNumber'      => $current->format('d'),
                 'isCurrentMonth' => $current->month === (int) $this->currentMonth,
-                'isToday'      => $current->isToday(),
-                'events'       => $dayEvents,
+                'isToday'        => $current->isToday(),
+                'events'         => $dayEvents,
             ];
 
             $current->addDay();
@@ -91,7 +96,7 @@ class AcademicCalendarWidget extends Widget
         return [
             'days'        => $days,
             'monthName'   => $startOfMonth->translatedFormat('F Y'),
-            'classes'     => \App\Models\ClassRoom::pluck('name', 'id')->toArray(),
+            'classes'     => ClassRoom::pluck('name', 'id')->toArray(),
         ];
     }
 }
