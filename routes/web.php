@@ -17,6 +17,25 @@ use App\Http\Controllers\Student\AuthController;
 // Middleware Proteksi Siswa
 use App\Http\Middleware\EnsureUserIsStudent;
 
+use App\Http\Controllers\StudentAttendancePdfController;
+use App\Http\Controllers\StudentSavingPdfController;
+use App\Http\Controllers\AcademicCalendarPdfController;
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/academic-calendar/pdf', AcademicCalendarPdfController::class)
+        ->name('academic-calendar.pdf');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/student-saving/pdf', StudentSavingPdfController::class)
+        ->name('student-saving.pdf');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/student-attendance/pdf', StudentAttendancePdfController::class)
+        ->name('student-attendance.pdf');
+});
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes - Public / Frontend

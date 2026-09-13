@@ -115,4 +115,5 @@ class TeacherSubjectClassesResource extends Resource
             'edit'   => Pages\EditTeacherSubjectClass::route('/{record}/edit'),
         ];
     }
+    
 }

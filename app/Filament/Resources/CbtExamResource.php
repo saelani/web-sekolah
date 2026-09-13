@@ -3,23 +3,27 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\CbtExamResource\Pages;
+use App\Imports\CbtQuestionImport;
 use App\Models\CbtExam;
+use App\Models\ClassRoom;
+use App\Models\LearningObjective;
+use App\Models\Subject;
 use Filament\Forms;
+use Filament\Forms\Components\Actions\Action as FormAction;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Actions\Action as TableAction;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use App\Imports\CbtQuestionImport;
-use Filament\Forms\Components\FileUpload;
-use Filament\Tables\Actions\Action;
-use Filament\Notifications\Notification;
-use Maatwebsite\Excel\Facades\Excel;
-use Filament\Forms\Components\Placeholder;
 use Illuminate\Support\HtmlString;
-
+use Illuminate\Support\Str;
+use Maatwebsite\Excel\Facades\Excel;
 
 class CbtExamResource extends Resource
 {
@@ -35,17 +39,12 @@ class CbtExamResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Daftar Ujian CBT';
 
-    /**
-     * Memfilter data berdasarkan role_type user.
-     * Kepala Sekolah (headmaster) & Admin dapat melihat semua ujian,
-     * sedangkan Guru Kelas / Guru Mapel hanya dapat melihat ujian milik sendiri.
-     */
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
         $user = auth()->user();
 
-        if ($user->role_type === 'headmaster' || $user->is_admin) {
+        if (($user->role_type ?? '') === 'headmaster' || ($user->is_admin ?? false)) {
             return $query;
         }
 
@@ -58,7 +57,6 @@ class CbtExamResource extends Resource
     {
         return $form
             ->schema([
-                // SECTION 1: Informasi Utama Ujian
                 Forms\Components\Section::make('Informasi Ujian')
                     ->description('Atur konfigurasi dasar pelaksanaan ujian CBT.')
                     ->schema([
@@ -96,7 +94,7 @@ class CbtExamResource extends Resource
                             ->default(fn () => strtoupper(Str::random(6)))
                             ->required()
                             ->suffixAction(
-                                Forms\Components\Actions\Action::make('generateToken')
+                                FormAction::make('generateToken')
                                     ->icon('heroicon-m-arrow-path')
                                     ->tooltip('Acak Token Baru')
                                     ->action(fn (Forms\Set $set) => $set('token', strtoupper(Str::random(6))))
@@ -115,7 +113,6 @@ class CbtExamResource extends Resource
                     ])
                     ->columns(2),
 
-                // SECTION 2: Pengaturan Pelaksanaan
                 Forms\Components\Section::make('Pengaturan & Aturan Ujian')
                     ->schema([
                         Forms\Components\Toggle::make('is_active')
@@ -138,7 +135,6 @@ class CbtExamResource extends Resource
                     ])
                     ->columns(2),
 
-                // SECTION 3: Input Soal & Opsi Jawaban
                 Forms\Components\Section::make('Bank Soal Ujian')
                     ->description('Masukkan daftar soal beserta kunci jawabannya di bawah ini.')
                     ->schema([
@@ -265,17 +261,255 @@ class CbtExamResource extends Resource
                     ->relationship('subject', 'name'),
             ])
             ->actions([
+                // ------------------------------------------------------------------------
+                // ACTION 1: BUAT SOAL DENGAN AI (BEBAS CIRCULAR BUG & RESPONSIF)
+                // ------------------------------------------------------------------------
+                TableAction::make('generateAiQuestions')
+                    ->label('Buat Soal dengan AI')
+                    ->icon('heroicon-o-sparkles')
+                    ->color('purple')
+                    ->modalHeading('✨ AI Question Generator (Kurikulum Merdeka)')
+                    ->modalDescription('Pilih mata pelajaran untuk menampilkan TP dari database, lalu buat prompt AI.')
+                    ->modalSubmitAction(false) // MATIKAN SUBMIT BAWAAN AGAR TIDAK MUTER
+                    ->modalCancelActionLabel('Tutup')
+                    ->form([
+                        Forms\Components\Section::make('Konfigurasi Asesmen & Prompt')
+                            ->schema([
+                                Forms\Components\Select::make('assessment_type')
+                                    ->label('Pilih Jenis Asesmen')
+                                    ->options([
+                                        'formatif' => '1. Asesmen Formatif (Harian/Proses)',
+                                        'sumatif_tp' => '2. Asesmen Sumatif Lingkup Materi (SLM / Bab)',
+                                        'sumatif_akhir' => '3. Asesmen Sumatif Akhir Semester (SAS)',
+                                    ])
+                                    ->default('formatif')
+                                    ->required(),
 
-                // ... di dalam method actions([...]) pada CbtExamResource.php
+                                Forms\Components\Grid::make(2)
+                                    ->schema([
+                                        Forms\Components\Select::make('class_room_id')
+                                            ->label('Kelas')
+                                            ->options(fn () => ClassRoom::pluck('name', 'id')->toArray())
+                                            ->searchable()
+                                            ->preload()
+                                            ->required(),
 
-                Action::make('importQuestions')
+                                        Forms\Components\Select::make('subject_id')
+                                            ->label('Mata Pelajaran')
+                                            ->options(fn () => Subject::pluck('name', 'id')->toArray())
+                                            ->default(fn (CbtExam $record) => $record->subject_id)
+                                            ->searchable()
+                                            ->preload()
+                                            ->required()
+                                            ->live(),
+                                    ]),
+
+                                Forms\Components\Select::make('learning_objective_id')
+                                    ->label('Tujuan Pembelajaran (TP)')
+                                    ->options(function (Forms\Get $get) {
+                                        $subjectId = $get('subject_id');
+                                        if (!$subjectId) {
+                                            return [];
+                                        }
+
+                                        try {
+                                            return LearningObjective::where('subject_id', $subjectId)
+                                                ->get()
+                                                ->pluck('description', 'id')
+                                                ->map(fn ($desc, $id) => Str::limit($desc ?? "TP #{$id}", 90))
+                                                ->toArray();
+                                        } catch (\Throwable $e) {
+                                            return [];
+                                        }
+                                    })
+                                    ->searchable()
+                                    ->preload()
+                                    ->helperText('Pilih Mata Pelajaran terlebih dahulu untuk memuat daftar TP.')
+                                    ->live(),
+
+                                Forms\Components\Textarea::make('custom_learning_objective')
+                                    ->label('Deskripsi TP Manual (Opsional)')
+                                    ->placeholder('Isi manual di sini jika TP tidak dipilih...')
+                                    ->rows(2),
+
+                                Forms\Components\TextInput::make('question_count')
+                                    ->label('Jumlah Soal')
+                                    ->numeric()
+                                    ->default(5)
+                                    ->minValue(1)
+                                    ->maxValue(20)
+                                    ->required(),
+
+                                Forms\Components\Actions::make([
+                                    FormAction::make('generatePromptText')
+                                        ->label('✨ Buat Prompt AI')
+                                        ->button()
+                                        ->color('primary')
+                                        ->extraAttributes([
+                                            'style' => 'background-color: #2563eb !important; color: #ffffff !important; font-weight: bold;',
+                                        ])
+                                        ->action(function (Forms\Get $get, Forms\Set $set) {
+                                            $jenis = match($get('assessment_type')) {
+                                                'formatif' => 'Asesmen Formatif Harian',
+                                                'sumatif_tp' => 'Sumatif Lingkup Materi',
+                                                default => 'Sumatif Akhir Semester',
+                                            };
+
+                                            $className = ClassRoom::find($get('class_room_id'))?->name ?? 'Kelas';
+                                            $subjectName = Subject::find($get('subject_id'))?->name ?? 'Mata Pelajaran';
+
+                                            $tpText = '';
+                                            if ($get('learning_objective_id')) {
+                                                $tpModel = LearningObjective::find($get('learning_objective_id'));
+                                                $tpText = $tpModel?->description ?? '';
+                                            }
+
+                                            if (empty($tpText)) {
+                                                $tpText = $get('custom_learning_objective') ?? '';
+                                            }
+
+                                            $jumlah = $get('question_count') ?? 5;
+
+                                            $prompt = "Buatkan {$jumlah} soal pilihan ganda (4 opsi: A, B, C, D) untuk {$jenis} tingkat {$className}, Mata Pelajaran {$subjectName}.\n";
+                                            $prompt .= "Tujuan Pembelajaran (TP): {$tpText}.\n\n";
+                                            $prompt .= "WAJIB BALAS HANYA DALAM FORMAT JSON MURNI TANPA TEKS TAMBAHAN DENGAN STRUKTUR BERIKUT:\n";
+                                            $prompt .= "[\n";
+                                            $prompt .= "  {\n";
+                                            $prompt .= "    \"pertanyaan\": \"Teks soal di sini\",\n";
+                                            $prompt .= "    \"opsi_a\": \"Jawaban A\",\n";
+                                            $prompt .= "    \"opsi_b\": \"Jawaban B\",\n";
+                                            $prompt .= "    \"opsi_c\": \"Jawaban C\",\n";
+                                            $prompt .= "    \"opsi_d\": \"Jawaban D\",\n";
+                                            $prompt .= "    \"kunci_jawaban\": \"A\"\n";
+                                            $prompt .= "  }\n";
+                                            $prompt .= "]";
+
+                                            $set('generated_prompt', $prompt);
+                                        }),
+
+                                    FormAction::make('copyPromptText')
+                                        ->label('📋 Salin Prompt AI')
+                                        ->button()
+                                        ->color('success')
+                                        ->extraAttributes([
+                                            'style' => 'background-color: #059669 !important; color: #ffffff !important; font-weight: bold;',
+                                        ])
+                                        ->action(function (Forms\Get $get, $livewire) {
+                                            $promptText = addslashes($get('generated_prompt') ?? '');
+
+                                            $livewire->js("
+                                                if (`{$promptText}`.trim() !== '') {
+                                                    navigator.clipboard.writeText(`{$promptText}`).then(() => {
+                                                        new FilamentNotification()
+                                                            .title('Prompt AI Berhasil Disalin!')
+                                                            .success()
+                                                            .send();
+                                                    });
+                                                }
+                                            ");
+                                        }),
+                                ]),
+
+                                Forms\Components\Textarea::make('generated_prompt')
+                                    ->label('Hasil Prompt AI')
+                                    ->rows(4)
+                                    ->readOnly()
+                                    ->helperText('Klik "Buat Prompt AI", lalu klik "Salin Prompt AI" untuk menempelkannya ke ChatGPT/Gemini.'),
+                            ]),
+
+                        Forms\Components\Section::make('Hasil dari AI (Paste JSON)')
+                            ->schema([
+                                Forms\Components\Textarea::make('ai_json_output')
+                                    ->label('Tempelkan Balasan JSON dari AI di Sini')
+                                    ->placeholder("[\n  {\n    \"pertanyaan\": \"...\",\n    \"opsi_a\": \"...\",\n    ...\n  }\n]")
+                                    ->rows(5)
+                                    ->required(),
+
+                                // TOMBOL SIMPAN KE DATABASE (TAMPIL KONTRAST & STABIL)
+                                Forms\Components\Actions::make([
+                                    FormAction::make('saveQuestionsFromModal')
+                                        ->label('💾 Simpan Soal ke Database')
+                                        ->button()
+                                        ->color('primary')
+                                        ->extraAttributes([
+                                            'style' => 'background-color: #16a34a !important; color: #ffffff !important; font-weight: bold; width: 100%; padding: 10px;',
+                                        ])
+                                        ->action(function (Forms\Get $get, CbtExam $record, $livewire) {
+                                            $jsonText = $get('ai_json_output');
+
+                                            if (empty($jsonText)) {
+                                                Notification::make()
+                                                    ->title('JSON Masih Kosong')
+                                                    ->body('Tempelkan teks JSON dari AI terlebih dahulu.')
+                                                    ->warning()
+                                                    ->send();
+                                                return;
+                                            }
+
+                                            try {
+                                                $questionsData = json_decode($jsonText, true);
+
+                                                if (!is_array($questionsData)) {
+                                                    throw new \Exception('Format JSON tidak valid.');
+                                                }
+
+                                                DB::transaction(function () use ($questionsData, $record) {
+                                                    foreach ($questionsData as $q) {
+                                                        $question = $record->questions()->create([
+                                                            'type' => 'multiple_choice',
+                                                            'question_text' => $q['pertanyaan'] ?? $q['question'] ?? 'Soal AI',
+                                                            'score_weight' => 1.0,
+                                                        ]);
+
+                                                        $kunci = strtoupper(trim($q['kunci_jawaban'] ?? $q['correct_answer'] ?? 'A'));
+
+                                                        $optionsMap = [
+                                                            'A' => $q['opsi_a'] ?? $q['option_a'] ?? '',
+                                                            'B' => $q['opsi_b'] ?? $q['option_b'] ?? '',
+                                                            'C' => $q['opsi_c'] ?? $q['option_c'] ?? '',
+                                                            'D' => $q['opsi_d'] ?? $q['option_d'] ?? '',
+                                                        ];
+
+                                                        foreach ($optionsMap as $key => $text) {
+                                                            if (!empty($text)) {
+                                                                $question->options()->create([
+                                                                    'option_text' => $text,
+                                                                    'is_correct' => ($key === $kunci),
+                                                                ]);
+                                                            }
+                                                        }
+                                                    }
+                                                });
+
+                                                Notification::make()
+                                                    ->title('Soal AI Berhasil Ditambahkan!')
+                                                    ->body(count($questionsData) . " soal baru telah dimasukkan ke ujian: {$record->title}")
+                                                    ->success()
+                                                    ->send();
+
+                                                $livewire->mountTableAction('generateAiQuestions', $record->id);
+                                            } catch (\Throwable $th) {
+                                                Notification::make()
+                                                    ->title('Gagal Memproses Soal AI')
+                                                    ->body('Terjadi kesalahan: ' . $th->getMessage())
+                                                    ->danger()
+                                                    ->send();
+                                            }
+                                        }),
+                                ])->fullWidth(),
+                            ]),
+                    ]),
+
+                // ------------------------------------------------------------------------
+                // ACTION 2: IMPOR SOAL EXCEL / CSV
+                // ------------------------------------------------------------------------
+                TableAction::make('importQuestions')
                     ->label('Impor Soal')
                     ->icon('heroicon-o-document-arrow-up')
                     ->color('success')
                     ->modalHeading('Impor Soal dari File Excel / CSV')
                     ->modalDescription('Pastikan susunan kolom pada file unggahan sesuai dengan ketentuan di bawah ini.')
                     ->form([
-                        // Informasi / Panduan Format Kolom
                         Placeholder::make('format_info')
                             ->label('Panduan Format Kolom (Header)')
                             ->content(new HtmlString('
@@ -285,11 +519,9 @@ class CbtExamResource extends Resource
                                         <li><strong>pertanyaan</strong> : Teks soal/pertanyaan</li>
                                         <li><strong>tipe</strong> : <code class="text-primary-600">multiple_choice</code> atau <code class="text-primary-600">essay</code></li>
                                         <li><strong>bobot</strong> : Angka bobot nilai (Contoh: 1)</li>
-                                        <li><strong>opsi_a, opsi_b, opsi_c, opsi_d, opsi_e</strong> : Pilihan jawaban (Diisi jika tipe = multiple_choice)</li>
-                                        <li><strong>kunci_jawaban</strong> : Huruf kunci (Contoh: <code class="text-emerald-600">A</code> / <code class="text-emerald-600">B</code> / <code class="text-emerald-600">C</code>)</li>
+                                        <li><strong>opsi_a, opsi_b, opsi_c, opsi_d, opsi_e</strong> : Pilihan jawaban</li>
+                                        <li><strong>kunci_jawaban</strong> : Huruf kunci (Contoh: <code class="text-emerald-600">A</code> / <code class="text-emerald-600">B</code>)</li>
                                     </ul>
-                                    <p class="italic text-amber-600 dark:text-amber-400">*Catatan: Jika PG ada 3 opsi, penulisan soal opsi  cukup dikosongkan dengan tanda petik contohnya <strong> "1","2","3","","", </strong></p>
-                                    <p class="italic text-amber-600 dark:text-amber-400">*Catatan: Untuk tipe <strong>essay</strong>, kolom opsi_a s/d opsi_e cukup dikosongkan saja.</p>
                                 </div>
                             ')),
 
