@@ -4,11 +4,16 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\GradeSumatifResource\Pages;
 use App\Models\GradeSumatif;
+use App\Models\Enrollment;
+use App\Models\ClassRoom;
+use App\Models\Subject;
+use App\Models\SumativeScope;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class GradeSumatifResource extends Resource
 {
@@ -19,6 +24,16 @@ class GradeSumatifResource extends Resource
     protected static ?string $navigationLabel = 'Nilai Sumatif';
     protected static ?int $navigationSort = 2;
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->with([
+            'enrollment.student', 
+            'enrollment.class', 
+            'subject', 
+            'sumativeScope'
+        ]);
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -26,21 +41,31 @@ class GradeSumatifResource extends Resource
                 Forms\Components\Section::make('Penilaian Sumatif Siswa')
                     ->schema([
                         Forms\Components\Select::make('enrollment_id')
-                            ->relationship('enrollment.student', 'name')
                             ->label('Siswa / Pendaftaran')
+                            ->options(
+                                Enrollment::with(['student', 'class'])->get()->mapWithKeys(function ($enrollment) {
+                                    $studentName = optional($enrollment->student)->name ?? 'Siswa Tanpa Nama';
+                                    $className = optional($enrollment->class)->name ?? 'Tanpa Kelas';
+                                    return [$enrollment->id => "{$studentName} ({$className})"];
+                                })
+                            )
                             ->searchable()
+                            ->preload()
                             ->required(),
 
                         Forms\Components\Select::make('subject_id')
                             ->relationship('subject', 'name')
                             ->label('Mata Pelajaran')
                             ->searchable()
+                            ->preload()
                             ->required(),
 
+                        // Menggunakan SumativeScope sebagai pilihan Lingkup Materi / Bab
                         Forms\Components\Select::make('sumative_scope_id')
-                            ->relationship('sumativeScope', 'name') // Nama fungsi relasi camelCase: sumativeScope
-                            ->label('Lingkup Materi / Sumatif Scope')
+                            ->relationship('sumativeScope', 'name')
+                            ->label('Lingkup Materi / Bab')
                             ->searchable()
+                            ->preload()
                             ->required(),
 
                         Forms\Components\Select::make('type')
@@ -73,20 +98,20 @@ class GradeSumatifResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                // Menggunakan relasi enrollment.class.name (mengacu ke class_id di model Enrollment)
                 Tables\Columns\TextColumn::make('enrollment.class.name')
                     ->label('Kelas')
-                    ->badge()
-                    ->sortable(),
+                    ->badge(),
 
                 Tables\Columns\TextColumn::make('subject.name')
                     ->label('Mata Pelajaran')
                     ->searchable()
                     ->sortable(),
 
+                // Menampilkan kolom Lingkup Materi / Bab dari model SumativeScope
                 Tables\Columns\TextColumn::make('sumativeScope.name')
-                    ->label('Lingkup Materi')
+                    ->label('Lingkup Materi / Bab')
                     ->searchable()
+                    ->sortable()
                     ->wrap(),
 
                 Tables\Columns\TextColumn::make('type')
@@ -101,13 +126,40 @@ class GradeSumatifResource extends Resource
                     ->sortable(),
             ])
             ->filters([
+                // Filter Berdasarkan Mata Pelajaran
                 Tables\Filters\SelectFilter::make('subject_id')
                     ->relationship('subject', 'name')
-                    ->label('Mata Pelajaran'),
+                    ->label('Mata Pelajaran')
+                    ->searchable()
+                    ->preload(),
 
+                // Filter Berdasarkan Lingkup Materi / Bab
+                Tables\Filters\SelectFilter::make('sumative_scope_id')
+                    ->relationship('sumativeScope', 'name')
+                    ->label('Lingkup Materi / Bab')
+                    ->searchable()
+                    ->preload(),
+
+                // Filter Berdasarkan Kelas
                 Tables\Filters\SelectFilter::make('class_id')
                     ->label('Kelas')
-                    ->relationship('enrollment.class', 'name'),
+                    ->options(ClassRoom::pluck('name', 'id'))
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $query->whereHas('enrollment', function ($q) use ($data) {
+                                $q->where('class_id', $data['value']);
+                            });
+                        }
+                    }),
+            ])
+            ->actions([
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
             ]);
     }
 

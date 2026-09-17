@@ -130,7 +130,7 @@ class BatchStudentAttendance extends Page implements HasForms
         }
 
         $students = Student::where('class_id', $classId)
-            ->orderBy('name')
+            ->orderBy('id', 'asc')
             ->get();
 
         $studentsData = $students->map(function ($student) use ($classId, $date) {

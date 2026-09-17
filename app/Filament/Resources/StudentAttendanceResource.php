@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\StudentAttendanceResource\Pages;
 use App\Models\ClassRoom;
+use App\Models\Student;
 use App\Models\StudentAttendance;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -31,6 +32,7 @@ class StudentAttendanceResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Detail Presensi Siswa')
                     ->schema([
+                        // 1. Pilih Kelas Terlebih Dahulu
                         Forms\Components\Select::make('class_id')
                             ->label('Kelas')
                             ->options(function () {
@@ -49,12 +51,22 @@ class StudentAttendanceResource extends Resource
 
                                 return $query->pluck('name', 'id');
                             })
+                            ->searchable()
+                            ->preload()
+                            ->live() // Membuat form reaktif terhadap perubahan kelas
+                            ->afterStateUpdated(fn (Forms\Set $set) => $set('student_id', null)) // Reset pilihan siswa jika kelas diubah
                             ->required(),
 
+                        // 2. Pilih Siswa (Difilter berdasarkan class_id yang dipilih)
                         Forms\Components\Select::make('student_id')
                             ->label('Siswa')
-                            ->relationship('student', 'name')
+                            ->options(fn (Forms\Get $get) => 
+                                Student::query()
+                                    ->when($get('class_id'), fn ($q, $classId) => $q->where('class_id', $classId))
+                                    ->pluck('name', 'id')
+                            )
                             ->searchable()
+                            ->preload()
                             ->required(),
 
                         Forms\Components\DatePicker::make('date')

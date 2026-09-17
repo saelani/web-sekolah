@@ -1,8 +1,8 @@
 @extends('pdf.layouts.report-master')
 
-@section('title', 'Laporan Rekapitulasi Absensi Siswa')
+@section('title', 'Laporan Rekapitulasi Ketidakhadiran Siswa')
 
-@section('doc-title', 'REKAPITULASI ABSENSI SISWA')
+@section('doc-title', 'REKAPITULASI KETIDAKHADIRAN SISWA')
 
 @section('styles')
 <style>
@@ -32,40 +32,15 @@
         font-weight: bold !important;
     }
 
-    /* Summary Box Styling */
-    .summary-box {
-        margin-top: 12px !important;
-        width: 100% !important;
+    .signature-section {
+        width: 100%;
+        margin-top: 25px;
         page-break-inside: avoid;
     }
 
-    .summary-title {
-        font-size: 8.5pt !important;
-        font-weight: bold;
-        margin-bottom: 4px;
-        text-transform: uppercase;
-    }
-
-    table.summary-table {
-        width: 100% !important;
-        border-collapse: collapse !important;
-    }
-
-    table.summary-table td, 
-    table.summary-table th {
-        border: 1px solid #000000 !important;
-        padding: 4px 6px !important;
-        font-size: 8pt !important;
-    }
-
-    table.summary-table th {
-        background-color: #eaeaea !important;
-        text-align: center !important;
-        font-weight: bold !important;
-    }
-
-    .bg-highlight {
-        background-color: #f9f9f9 !important;
+    .signature-box {
+        width: 45%;
+        font-size: 8.5pt;
     }
 </style>
 @endsection
@@ -73,113 +48,77 @@
 @section('meta-data')
 <tr>
     <td style="width: 15%;"><strong>Kelas</strong></td>
-    <td style="width: 35%;">: {{ $selectedClass?->name ?? 'Semua Kelas' }}</td>
-    <td style="width: 15%;"><strong>Bulan / Tahun</strong></td>
-    <td style="width: 35%;">: {{ $monthName }} {{ $year }} ({{ $effectiveDays }} Hari)</td>
+    <td style="width: 35%;">: {{ $class?->name ?? '-' }}</td>
+    <td style="width: 15%;"><strong>Periode</strong></td>
+    <td style="width: 35%;">: {{ \Carbon\Carbon::parse($startDate)->translatedFormat('d F Y') }} s.d. {{ \Carbon\Carbon::parse($endDate)->translatedFormat('d F Y') }}</td>
 </tr>
 <tr>
-    <td><strong>Tahun Ajaran</strong></td>
-    <td>: {{ $academicYear?->year ?? '-' }} (Semester {{ $semester }})</td>
+    <td><strong>Wali Kelas</strong></td>
+    <td>: {{ $teacher?->name ?? '-' }}</td>
     <td><strong>Tanggal Cetak</strong></td>
-    <td>: {{ $generatedAt }}</td>
+    <td>: {{ \Carbon\Carbon::now()->translatedFormat('d F Y') }}</td>
 </tr>
 @endsection
 
 @section('content')
-{{-- TABEL DATA UTAMA REKAP ABSENSI SISWA --}}
+{{-- TABEL DATA UTAMA REKAP KETIDAKHADIRAN SISWA --}}
 <table class="data-table">
     <thead>
         <tr>
-            <th style="width: 4%;">No</th>
-            <th style="width: 15%;">NISN / NIS</th>
-            <th style="width: 33%;">Nama Siswa</th>
-            <th style="width: 9%;">Hadir*</th>
-            <th style="width: 9%;">Sakit</th>
-            <th style="width: 9%;">Izin</th>
-            <th style="width: 9%;">Alpa</th>
-            <th style="width: 12%;">% Kehadiran</th>
+            <th style="width: 5%;">No</th>
+            <th style="width: 18%;">NISN / NIS</th>
+            <th style="width: 37%;">Nama Siswa</th>
+            <th style="width: 10%;">Sakit</th>
+            <th style="width: 10%;">Izin</th>
+            <th style="width: 10%;">Alpa</th>
+            <th style="width: 10%;">Jumlah Total</th>
         </tr>
     </thead>
     <tbody>
         @forelse($summary as $index => $row)
             <tr>
                 <td class="text-center">{{ $index + 1 }}</td>
-                <td class="text-center">{{ $row['nisn'] }}</td>
-                <td>{{ $row['student_name'] }}</td>
-                <td class="text-center">{{ $row['hadir'] }}</td>
+                <td class="text-center">{{ $row['student']->nisn ?? $row['student']->nis ?? '-' }}</td>
+                <td>{{ $row['student']->name ?? '-' }}</td>
                 <td class="text-center">{{ $row['sakit'] }}</td>
                 <td class="text-center">{{ $row['izin'] }}</td>
                 <td class="text-center">{{ $row['alpa'] }}</td>
-                <td class="text-center font-bold">{{ $row['percentage'] }}%</td>
+                <td class="text-center font-bold">{{ $row['total'] }}</td>
             </tr>
         @empty
             <tr>
-                <td colspan="8" class="text-center">Tidak ada data siswa / absensi untuk periode ini.</td>
+                <td colspan="7" class="text-center">Tidak ada data siswa untuk periode ini.</td>
             </tr>
         @endforelse
     </tbody>
     <tfoot>
         <tr>
-            <td colspan="3" class="text-right font-bold">TOTAL HARI KELAS:</td>
-            <td class="text-center">{{ $totalHadir }}</td>
-            <td class="text-center">{{ $totalSakit }}</td>
-            <td class="text-center">{{ $totalIzin }}</td>
-            <td class="text-center">{{ $totalAlpa }}</td>
-            <td class="text-center font-bold">{{ $classAttendanceRate }}%</td>
+            <td colspan="3" class="text-right font-bold">TOTAL KESELURUHAN:</td>
+            <td class="text-center">{{ $summary->sum('sakit') }}</td>
+            <td class="text-center">{{ $summary->sum('izin') }}</td>
+            <td class="text-center">{{ $summary->sum('alpa') }}</td>
+            <td class="text-center font-bold">{{ $summary->sum('total') }}</td>
         </tr>
     </tfoot>
 </table>
 
-<div style="font-size: 7.5pt; font-style: italic; margin-top: 3px; margin-bottom: 8px;">
-    * Catatan: Siswa tanpa keterangan Sakit, Izin, dan Alpa otomatis dihitung Hadir ({{ $effectiveDays }} Hari Bulan {{ $monthName }}).
-</div>
-
-{{-- TABEL PERSENTASE & STATISTIK DI BAWAH TABEL --}}
-<div class="summary-box">
-    <div class="summary-title">PERSENTASE KEHADIRAN KELAS BULAN {{ strtoupper($monthName) }} {{ $year }}</div>
-    <table class="summary-table">
-        <thead>
-            <tr>
-                <th style="width: 25%;">Kategori</th>
-                <th style="width: 20%;">Total Hari Hari Ini</th>
-                <th style="width: 20%;">Persentase (%)</th>
-                <th style="width: 35%;">Keterangan Perhitungan</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td><strong>Hadir (H)</strong></td>
-                <td class="text-center">{{ $totalHadir }}</td>
-                <td class="text-center font-bold" style="color: green;">{{ $classAttendanceRate }}%</td>
-                <td>({{ $totalHadir }} / {{ $totalExpectedDays }}) × 100%</td>
-            </tr>
-            <tr>
-                <td><strong>Sakit (S)</strong></td>
-                <td class="text-center">{{ $totalSakit }}</td>
-                <td class="text-center">{{ $classSakitRate }}%</td>
-                <td>({{ $totalSakit }} / {{ $totalExpectedDays }}) × 100%</td>
-            </tr>
-            <tr>
-                <td><strong>Izin (I)</strong></td>
-                <td class="text-center">{{ $totalIzin }}</td>
-                <td class="text-center">{{ $classIzinRate }}%</td>
-                <td>({{ $totalIzin }} / {{ $totalExpectedDays }}) × 100%</td>
-            </tr>
-            <tr>
-                <td><strong>Alpa (A)</strong></td>
-                <td class="text-center">{{ $totalAlpa }}</td>
-                <td class="text-center" style="color: red;">{{ $classAlpaRate }}%</td>
-                <td>({{ $totalAlpa }} / {{ $totalExpectedDays }}) × 100%</td>
-            </tr>
-            <tr class="bg-highlight font-bold">
-                <td><strong>RATA-RATA KEHADIRAN KELAS</strong></td>
-                <td class="text-center">{{ $totalHadir }} / {{ $totalExpectedDays }}</td>
-                <td class="text-center font-bold" style="font-size: 9pt;">{{ $classAttendanceRate }}%</td>
-                <td>
-                    {{ $totalStudents }} Siswa × {{ $effectiveDays }} Hari Bulan Berjalan = {{ $totalExpectedDays }} Target Hari
-                </td>
-            </tr>
-        </tbody>
-    </table>
-</div>
+{{-- TITI MANGSA DAN TANDA TANGAN --}}
+<table class="signature-section" style="border-collapse: collapse; border: none;">
+    <tr>
+        <td class="signature-box" style="text-align: left; vertical-align: top; border: none;">
+            <div>Mengetahui,</div>
+            <div>Kepala Sekolah</div>
+            <br><br><br>
+            <div style="font-weight: bold; text-decoration: underline;">{{ $headmaster?->name ?? '..................................' }}</div>
+            <div>NIP. {{ $headmaster?->nip ?? '-' }}</div>
+        </td>
+        <td class="signature-box" style="text-align: right; vertical-align: top; border: none;">
+            <div>{{ $school->city ?? 'Kota' }}, {{ $titiMangsa }}</div>
+            <div>Wali Kelas</div>
+            <br><br><br>
+            <div style="font-weight: bold; text-decoration: underline;">{{ $teacher?->name ?? '..................................' }}</div>
+            <div>NIP. {{ $teacher?->nip ?? '-' }}</div>
+        </td>
+    </tr>
+</table>
 @endsection

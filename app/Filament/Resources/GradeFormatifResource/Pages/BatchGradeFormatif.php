@@ -7,6 +7,7 @@ use App\Models\ClassRoom;
 use App\Models\Enrollment;
 use App\Models\GradeFormatif;
 use App\Models\LearningObjective;
+use App\Models\SumativeScope; // Model Lingkup Materi / Bab baru
 use App\Models\Subject;
 use App\Services\GradeCalculationService;
 use Filament\Forms\Components\Hidden;
@@ -32,7 +33,7 @@ class BatchGradeFormatif extends Page implements HasForms
 
     protected static string $view = 'filament.resources.grade-formatif-resource.pages.batch-grade-formatif';
 
-    protected static ?string $title = 'Input Nilai Massal (Formatif, SLM & SLS)';
+    protected static ?string $title = 'Input Nilai Massal (Formatif, Bab & SLS)';
 
     public ?array $data = [];
 
@@ -47,19 +48,24 @@ class BatchGradeFormatif extends Page implements HasForms
             ->schema([
                 Section::make('Filter & Parameter Penilaian')
                     ->schema([
-                        // 1. Jenis Penilaian (Formatif TP / Sumatif SLM / Sumatif SLS)
+                        // 1. Jenis Penilaian (Formatif TP / Bab / SLS)
                         Select::make('assessment_type')
                             ->label('Jenis Penilaian')
                             ->options([
                                 'formatif' => 'Formatif (Tujuan Pembelajaran)',
-                                'slm'      => 'Sumatif Lingkup Materi (SLM)',
+                                'slm'      => 'Sumatif Lingkup Materi / Bab',
                                 'sls'      => 'Sumatif Akhir Semester (SLS)',
                             ])
                             ->default('formatif')
                             ->live()
-                            ->afterStateUpdated(function (Set $set) {
+                            ->afterStateUpdated(function (Get $get, Set $set) {
                                 $set('learning_objective_id', null);
+                                $set('sumative_scope_id', null);
                                 $set('students', []);
+                                
+                                if ($get('assessment_type') === 'sls' && $get('class_id') && $get('subject_id')) {
+                                    $this->loadStudentsData($get, $set);
+                                }
                             })
                             ->required(),
 
@@ -89,6 +95,7 @@ class BatchGradeFormatif extends Page implements HasForms
                             ->afterStateUpdated(function (Set $set) {
                                 $set('subject_id', null);
                                 $set('learning_objective_id', null);
+                                $set('sumative_scope_id', null);
                                 $set('students', []);
                             })
                             ->required(),
@@ -119,16 +126,21 @@ class BatchGradeFormatif extends Page implements HasForms
                                 return $query->pluck('name', 'id');
                             })
                             ->live()
-                            ->afterStateUpdated(function (Set $set) {
+                            ->afterStateUpdated(function (Get $get, Set $set) {
                                 $set('learning_objective_id', null);
+                                $set('sumative_scope_id', null);
                                 $set('students', []);
+
+                                if ($get('assessment_type') === 'sls' && $get('class_id')) {
+                                    $this->loadStudentsData($get, $set);
+                                }
                             })
                             ->disabled(fn (Get $get) => !$get('class_id'))
                             ->required(),
 
-                        // 4. Pilih Tujuan Pembelajaran (TP) / Lingkup Materi
+                        // 4. Pilih Tujuan Pembelajaran (TP) - Muncul jika 'formatif'
                         Select::make('learning_objective_id')
-                            ->label(fn (Get $get) => $get('assessment_type') === 'slm' ? 'Lingkup Materi (TP)' : 'Tujuan Pembelajaran (TP)')
+                            ->label('Tujuan Pembelajaran (TP)')
                             ->options(function (Get $get) {
                                 $subjectId = $get('subject_id');
                                 if (!$subjectId) return [];
@@ -141,11 +153,27 @@ class BatchGradeFormatif extends Page implements HasForms
                             })
                             ->live()
                             ->afterStateUpdated(fn (Get $get, Set $set) => $this->loadStudentsData($get, $set))
-                            ->visible(fn (Get $get) => in_array($get('assessment_type'), ['formatif', 'slm']))
+                            ->visible(fn (Get $get) => $get('assessment_type') === 'formatif')
                             ->disabled(fn (Get $get) => !$get('subject_id'))
-                            ->required(fn (Get $get) => in_array($get('assessment_type'), ['formatif', 'slm'])),
+                            ->required(fn (Get $get) => $get('assessment_type') === 'formatif'),
 
-                    ])->columns(4),
+                        // 5. Pilih Bab / Lingkup Materi - Muncul jika 'slm'
+                        Select::make('sumative_scope_id')
+                            ->label('Lingkup Materi / Bab')
+                            ->options(function (Get $get) {
+                                $subjectId = $get('subject_id');
+                                if (!$subjectId) return [];
+
+                                return SumativeScope::where('subject_id', $subjectId)
+                                    ->pluck('name', 'id');
+                            })
+                            ->live()
+                            ->afterStateUpdated(fn (Get $get, Set $set) => $this->loadStudentsData($get, $set))
+                            ->visible(fn (Get $get) => $get('assessment_type') === 'slm')
+                            ->disabled(fn (Get $get) => !$get('subject_id'))
+                            ->required(fn (Get $get) => $get('assessment_type') === 'slm'),
+
+                    ])->columns(3),
 
                 Section::make('Daftar Input Nilai Siswa')
                     ->schema([
@@ -184,53 +212,56 @@ class BatchGradeFormatif extends Page implements HasForms
                             ->columns(2)
                             ->addable(false)
                             ->deletable(false)
-                            ->reorderable(false)
-                            ->extraAttributes([
-                                'class' => '[&_.fi-fo-repeater-item]:p-3 [&_.fi-fo-repeater-item-header]:py-1 [&_.fi-fo-repeater-item-header]:px-2 [&_.fi-fo-repeater-item-content]:p-2',
-                            ]),
+                            ->reorderable(false),
                     ]),
             ])
             ->statePath('data');
     }
 
-    /**
-     * Memuat daftar siswa dan nilai yang tersimpan berdasarkan jenis penilaian
-     */
     protected function loadStudentsData(Get $get, Set $set): void
     {
         $classId = $get('class_id');
         $type = $get('assessment_type');
         $tpId = $get('learning_objective_id');
+        $scopeId = $get('sumative_scope_id');
+        $subjectId = $get('subject_id');
 
-        if (!$classId) {
+        if (!$classId || !$subjectId) {
             $set('students', []);
             return;
         }
 
-        if (in_array($type, ['formatif', 'slm']) && !$tpId) {
+        if ($type === 'formatif' && !$tpId) {
+            $set('students', []);
+            return;
+        }
+
+        if ($type === 'slm' && !$scopeId) {
             $set('students', []);
             return;
         }
 
         $enrollments = Enrollment::with('student')
             ->where('class_id', $classId)
-            ->get();
+            ->get()
+            ->sortBy(function ($enrollment) {
+                return $enrollment->student->name ?? '';
+            });
 
-        $studentsData = $enrollments->map(function ($enrollment) use ($type, $tpId) {
+        $studentsData = $enrollments->map(function ($enrollment) use ($type, $tpId, $scopeId) {
             $existingGrade = null;
 
             if ($type === 'formatif') {
                 $existingGrade = GradeFormatif::where('enrollment_id', $enrollment->id)
                     ->where('learning_objective_id', $tpId)
+                    ->where('type', 'formatif')
                     ->first();
             } else if ($type === 'slm') {
-                // Pastikan kolom / model penampung nilai SLM disesuaikan (misal: grade_slm / kolom type)
                 $existingGrade = GradeFormatif::where('enrollment_id', $enrollment->id)
-                    ->where('learning_objective_id', $tpId)
+                    ->where('sumative_scope_id', $scopeId)
                     ->where('type', 'slm')
                     ->first();
             } else if ($type === 'sls') {
-                // Nilai Akhir Semester (SLS) terikat pada enrollment & subject
                 $existingGrade = GradeFormatif::where('enrollment_id', $enrollment->id)
                     ->where('type', 'sls')
                     ->first();
@@ -242,7 +273,7 @@ class BatchGradeFormatif extends Page implements HasForms
                 'score'         => $existingGrade?->score ?? null,
                 'is_achieved'   => $existingGrade?->is_achieved ?? true,
             ];
-        })->toArray();
+        })->values()->toArray();
 
         $set('students', $studentsData);
     }
@@ -253,6 +284,7 @@ class BatchGradeFormatif extends Page implements HasForms
 
         $type = $formData['assessment_type'] ?? 'formatif';
         $tpId = $formData['learning_objective_id'] ?? null;
+        $scopeId = $formData['sumative_scope_id'] ?? null;
         $subjectId = $formData['subject_id'] ?? null;
         $students = $formData['students'] ?? [];
 
@@ -267,23 +299,22 @@ class BatchGradeFormatif extends Page implements HasForms
 
         foreach ($students as $student) {
             $hasScore = $student['score'] !== null && $student['score'] !== '';
-            $score = $hasScore ? (float)$student['score'] : 68;
+            $score = $hasScore ? (float)$student['score'] : 40;
             $isAchieved = $hasScore ? (bool)$student['is_achieved'] : ($score >= 70);
 
-            // Simpan / Perbarui nilai berdasarkan jenis penilaian
             GradeFormatif::updateOrCreate(
                 [
-                    'enrollment_id' => $student['enrollment_id'],
-                    'learning_objective_id' => in_array($type, ['formatif', 'slm']) ? $tpId : null,
-                    'type' => $type,
+                    'enrollment_id'         => $student['enrollment_id'],
+                    'learning_objective_id' => ($type === 'formatif') ? $tpId : null,
+                    'sumative_scope_id'     => ($type === 'slm') ? $scopeId : null,
+                    'type'                  => $type,
                 ],
                 [
-                    'score' => $score,
+                    'score'       => $score,
                     'is_achieved' => $isAchieved,
                 ]
             );
 
-            // Hitung ulang nilai akhir semester di service
             if (class_exists(GradeCalculationService::class)) {
                 GradeCalculationService::calculateForStudent($student['enrollment_id'], $subjectId);
             }
@@ -291,7 +322,7 @@ class BatchGradeFormatif extends Page implements HasForms
 
         Notification::make()
             ->title('Berhasil Disimpan')
-            ->body("Seluruh nilai {$type} berhasil diperbarui.")
+            ->body("Seluruh nilai berhasil diperbarui.")
             ->success()
             ->send();
 

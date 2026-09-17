@@ -4,21 +4,31 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\GradeExtracurricularResource\Pages;
 use App\Models\ExtracurricularScore;
+use App\Models\Enrollment;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class GradeExtracurricularResource extends Resource
 {
-    // Menggunakan Model ExtracurricularScore sesuai tabel grade_extracurricular_scores
     protected static ?string $model = ExtracurricularScore::class;
     
     protected static ?string $navigationIcon = 'heroicon-o-trophy';
     protected static ?string $navigationGroup = 'Penilaian';
     protected static ?string $navigationLabel = 'Nilai Ekstrakurikuler';
     protected static ?int $navigationSort = 3;
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->with([
+            'enrollment.student', 
+            'enrollment.class', 
+            'extracurricular'
+        ]);
+    }
 
     public static function form(Form $form): Form
     {
@@ -27,14 +37,23 @@ class GradeExtracurricularResource extends Resource
                 Forms\Components\Section::make('Penilaian Ekstrakurikuler')
                     ->schema([
                         Forms\Components\Select::make('enrollment_id')
-                            ->relationship('enrollment.student', 'name')
                             ->label('Siswa / Pendaftaran')
+                            ->options(
+                                Enrollment::with(['student', 'class'])->get()->mapWithKeys(function ($enrollment) {
+                                    $studentName = optional($enrollment->student)->name ?? 'Siswa Tanpa Nama';
+                                    $className = optional($enrollment->class)->name ?? 'Tanpa Kelas';
+                                    return [$enrollment->id => "{$studentName} ({$className})"];
+                                })
+                            )
                             ->searchable()
+                            ->preload()
                             ->required(),
 
                         Forms\Components\Select::make('extracurricular_id')
                             ->relationship('extracurricular', 'name')
                             ->label('Kegiatan Ekstrakurikuler')
+                            ->searchable()
+                            ->preload()
                             ->required(),
 
                         Forms\Components\TextInput::make('grade')
@@ -59,7 +78,7 @@ class GradeExtracurricularResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('enrollment.classRoom.name')
+                Tables\Columns\TextColumn::make('enrollment.class.name')
                     ->label('Kelas')
                     ->badge()
                     ->sortable(),
@@ -83,7 +102,18 @@ class GradeExtracurricularResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('extracurricular_id')
                     ->relationship('extracurricular', 'name')
-                    ->label('Ekstrakurikuler'),
+                    ->label('Ekstrakurikuler')
+                    ->searchable()
+                    ->preload(),
+            ])
+            ->actions([
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
             ]);
     }
 

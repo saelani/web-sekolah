@@ -204,7 +204,8 @@
                 NIP. {{ $headmaster->nip ?? '-' }}
             </td>
             <td style="width: 50%;">
-                {{ $school->city ?? 'Kuningan' }}, {{ \Carbon\Carbon::now()->translatedFormat('d F Y') }}<br>
+                <!-- {{ $school->city ?? 'Kuningan' }}, {{ \Carbon\Carbon::now()->translatedFormat('d F Y') }}<br> -->
+                {{ $school->city ?? 'Kuningan' }}, {{ $titiMangsa }} <br>  
                 Guru / Wali Kelas
                 <div class="signature-space"></div>
                 <strong><u>

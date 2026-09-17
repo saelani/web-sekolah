@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\ClassRoom;
+use App\Models\Student;
 use App\Models\StudentAttendance;
 use App\Models\Teacher;
-use App\Models\SchoolProfile; // Sesuaikan jika nama model profil sekolah Anda berbeda
+use App\Models\SchoolProfile; 
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class StudentAttendancePdfController extends Controller
@@ -19,47 +21,79 @@ class StudentAttendancePdfController extends Controller
             'end_date'   => 'required|date',
         ]);
 
-        // 1. Ambil data Kelas dan Wali Kelas (homeroomTeacher)
+        Carbon::setLocale('id');
+
         $class = ClassRoom::with('homeroomTeacher')->findOrFail($request->class_id);
-
-        // 2. Ambil Kepala Sekolah berdasarkan enum role_type = 'headmaster'
-        $headmaster = Teacher::query()
-            ->where('role_type', 'headmaster')
-            ->first();
-
-        // 3. Ambil data Profil Sekolah
+        $headmaster = Teacher::query()->where('role_type', 'headmaster')->first();
         $school = SchoolProfile::first();
 
-        // 4. Query Data Presensi
-        $attendances = StudentAttendance::with('student')
-            ->where('class_id', $request->class_id)
-            ->whereBetween('date', [$request->start_date, $request->end_date])
-            ->orderBy('date', 'asc')
+        $startDate = Carbon::parse($request->start_date);
+        $endDate = Carbon::parse($request->end_date);
+
+        // Hitung Hari Efektif (Hanya Senin s.d. Jumat, mengabaikan Sabtu & Minggu)
+        $effectiveDays = 0;
+        $currentDate = $startDate->copy();
+
+        while ($currentDate->lte($endDate)) {
+            // isWeekday() bernilai true jika Senin sampai Jumat (mengabaikan Sabtu/Minggu)
+            if ($currentDate->isWeekday()) {
+                $effectiveDays++;
+            }
+            $currentDate->addDay();
+        }
+
+        $students = Student::where('class_id', $request->class_id)
+            ->orderBy('id', 'asc')
             ->get();
 
-        // 5. Rekapitulasi per siswa
-        $summary = $attendances->groupBy('student_id')->map(function ($items) {
+        $attendances = StudentAttendance::where('class_id', $request->class_id)
+            ->whereBetween('date', [$request->start_date, $request->end_date])
+            ->get();
+
+        // Rekapitulasi per siswa & Hitung Persentase Kehadiran
+        $summary = $students->map(function ($student) use ($attendances, $effectiveDays) {
+            $studentAttendances = $attendances->where('student_id', $student->id);
+
+            $sakit = $studentAttendances->whereIn('status', ['Sakit', 'S'])->count();
+            $izin  = $studentAttendances->whereIn('status', ['Izin', 'I'])->count();
+            $alpa  = $studentAttendances->whereIn('status', ['Alpa', 'A'])->count();
+            
+            $totalKetidakhadiran = $sakit + $izin + $alpa;
+            
+            // Hadir adalah total hari efektif (tanpa Sabtu/Minggu) dikurangi total ketidakhadiran
+            $hadir = max(0, $effectiveDays - $totalKetidakhadiran);
+
+            // Hitung persentase kehadiran
+            $percentage = $effectiveDays > 0 ? round(($hadir / $effectiveDays) * 100, 1) : 0;
+
             return [
-                'student' => $items->first()->student,
-                'hadir'   => $items->whereIn('status', ['Hadir', 'H'])->count(),
-                'sakit'   => $items->whereIn('status', ['Sakit', 'S'])->count(),
-                'izin'    => $items->whereIn('status', ['Izin', 'I'])->count(),
-                'alpa'    => $items->whereIn('status', ['Alpa', 'A'])->count(),
+                'student'    => $student,
+                'hadir'      => $hadir,
+                'sakit'      => $sakit,
+                'izin'       => $izin,
+                'alpa'       => $alpa,
+                'total'      => $totalKetidakhadiran,
+                'percentage' => $percentage,
             ];
         });
 
-        // 6. Generate PDF
+        $titiMangsa = $endDate->translatedFormat('d F Y');
+        $monthName  = $startDate->translatedFormat('F Y');
+
         $pdf = Pdf::loadView('pdf.laporan-presensi-siswa', [
-            'class'       => $class,
-            'attendances' => $attendances,
-            'summary'     => $summary,
-            'startDate'   => $request->start_date,
-            'endDate'     => $request->end_date,
-            'school'      => $school,
-            'headmaster'  => $headmaster,
-            'teacher'     => $class->homeroomTeacher,
+            'class'         => $class,
+            'attendances'   => $attendances,
+            'summary'       => $summary,
+            'startDate'     => $request->start_date,
+            'endDate'       => $request->end_date,
+            'effectiveDays' => $effectiveDays, // Otomatis tanpa Sabtu & Minggu
+            'monthName'     => $monthName,
+            'school'        => $school,
+            'headmaster'    => $headmaster,
+            'teacher'       => $class->homeroomTeacher,
+            'titiMangsa'    => $titiMangsa,
         ])->setPaper('a4', 'portrait');
 
-        return $pdf->stream("Laporan_Presensi_{$class->name}.pdf");
+        return $pdf->stream("Laporan_Persentase_Kehadiran_{$class->name}.pdf");
     }
 }

@@ -70,7 +70,6 @@
                             @endphp
 
                             @if($type === 'essay' || empty($currentQ['options']))
-                                <!-- Field Input untuk Soal Essay -->
                                 <div class="space-y-2">
                                     <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider">Jawaban Anda:</label>
                                     <textarea 
@@ -83,7 +82,6 @@
                                     <p class="text-xs text-gray-400 italic">* Jawaban tersimpan otomatis saat Anda berpindah kolom atau menekan tombol navigasi.</p>
                                 </div>
                             @else
-                                <!-- Field untuk Pilihan Ganda -->
                                 <div class="space-y-3">
                                     @php
                                         $letters = ['A', 'B', 'C', 'D', 'E'];
@@ -193,7 +191,7 @@
                 </button>
             </div>
 
-            <!-- Tombol Keluar (Logout) Dipindahkan Ke Sini -->
+            <!-- Tombol Keluar (Logout) -->
             <form action="{{ route('student.logout') }}" method="POST" class="flex-shrink-0">
                 @csrf
                 <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl border border-rose-200 transition shadow-sm cursor-pointer whitespace-nowrap">
@@ -299,13 +297,134 @@
                     </div>
 
                 </div>
+            
 
+            {{-- TAB 2: MATERI (Mendukung YouTube & Tampil PDF Langsung di Web) --}}
             {{-- TAB 2: MATERI --}}
             @elseif($activeTab === 'materi')
-                <div class="p-6 bg-white rounded-2xl shadow-sm border border-gray-100" wire:key="tab-content-materi">
-                    <h3 class="text-lg font-bold text-gray-800">Materi Pembelajaran</h3>
+                <div class="space-y-6" wire:key="tab-content-materi">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-100 pb-4 gap-4">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-800">📚 Materi Pembelajaran & Media Belajar</h3>
+                                <p class="text-xs text-gray-500 mt-0.5">Pelajari ringkasan, dokumen PDF, foto materi, atau tonton video pembelajaran.</p>
+                            </div>
+
+                            <!-- Filter Mata Pelajaran Cepat -->
+                            <div class="w-full sm:w-64">
+                                <select wire:model.live="selectedSubject" class="w-full text-xs border-gray-300 rounded-xl shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="">Semua Mata Pelajaran</option>
+                                    @foreach($allSubjects as $subj)
+                                        <option value="{{ $subj->id }}">{{ $subj->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Daftar Grid Materi -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                            @forelse($materials ?? [] as $material)
+                                @php
+                                    $videoLink = $material->external_url ?? $material->video_url ?? '';
+                                    $isYoutube = $material->type === 'youtube' || (str_contains($videoLink, 'youtube.com') || str_contains($videoLink, 'youtu.be'));
+                                    
+                                    $youtubeEmbedUrl = '';
+                                    if ($isYoutube && !empty($videoLink)) {
+                                        if (preg_match('/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i', $videoLink, $match)) {
+                                            $youtubeEmbedUrl = 'https://www.youtube.com/embed/' . $match[1];
+                                        }
+                                    }
+                                @endphp
+
+                                <div class="bg-gray-50 p-5 rounded-2xl border border-gray-200 flex flex-col justify-between space-y-4 hover:shadow-md transition">
+                                    <div class="space-y-3">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-md uppercase 
+                                                {{ $material->type === 'pdf' ? 'bg-red-50 text-red-600 border border-red-100' : ($material->type === 'image' ? 'bg-amber-50 text-amber-600 border border-amber-100' : ($isYoutube ? 'bg-rose-50 text-rose-600 border border-rose-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100')) }}">
+                                                {{ $material->type === 'pdf' ? 'File PDF' : ($material->type === 'image' ? 'Gambar / Foto' : ($isYoutube ? 'Video YouTube' : 'Ringkasan Teks')) }}
+                                            </span>
+                                            <span class="text-xs text-gray-400 font-medium">{{ $material->class_level ?? '' }}</span>
+                                        </div>
+
+                                        <h4 class="font-bold text-base text-gray-800">{{ $material->title }}</h4>
+                                        <p class="text-xs text-gray-500 font-medium">Mapel: <span class="text-gray-700 font-semibold">{{ $material->subject }}</span></p>
+
+                                        {{-- 1. YOUTUBE VIDEO --}}
+                                        @if($isYoutube && $youtubeEmbedUrl)
+                                            <div class="relative w-full aspect-video rounded-xl overflow-hidden shadow-inner bg-black">
+                                                <iframe 
+                                                    src="{{ $youtubeEmbedUrl }}" 
+                                                    title="{{ $material->title }}" 
+                                                    class="absolute top-0 left-0 w-full h-full border-0" 
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                                    allowfullscreen>
+                                                </iframe>
+                                            </div>
+
+                                        {{-- 2. FILE PDF VIEWER --}}
+                                        @elseif($material->type === 'pdf' && !empty($material->file_path))
+                                            <div class="space-y-2">
+                                                <div class="w-full h-72 bg-gray-900 rounded-xl overflow-hidden border border-gray-300 shadow-inner">
+                                                    <iframe 
+                                                        src="{{ asset('storage/' . $material->file_path) }}" 
+                                                        class="w-full h-full border-0" 
+                                                        title="{{ $material->title }}">
+                                                    </iframe>
+                                                </div>
+                                                <div class="flex justify-end">
+                                                    <a href="{{ asset('storage/' . $material->file_path) }}" target="_blank" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-1.5">
+                                                        <span>Buka / Download PDF Penuh</span>
+                                                    </a>
+                                                </div>
+                                            </div>
+
+                                        {{-- 3. GAMBAR / FOTO MATERI --}}
+                                        @elseif($material->type === 'image' && !empty($material->file_path))
+                                            <div class="space-y-2">
+                                                <div class="rounded-xl overflow-hidden border border-gray-200 bg-white shadow-sm flex justify-center p-2">
+                                                    <a href="{{ asset('storage/' . $material->file_path) }}" target="_blank" title="Klik untuk memperbesar gambar">
+                                                        <img 
+                                                            src="{{ asset('storage/' . $material->file_path) }}" 
+                                                            alt="{{ $material->title }}" 
+                                                            class="max-h-64 w-auto object-contain hover:scale-105 transition duration-300 cursor-pointer rounded-lg"
+                                                        />
+                                                    </a>
+                                                </div>
+                                                <p class="text-[10px] text-gray-400 text-center italic">* Klik gambar untuk memperbesar</p>
+                                            </div>
+
+                                        {{-- 4. RINGKASAN TEKS --}}
+                                        @elseif($material->type === 'summary' && !empty($material->content))
+                                            <div class="text-xs text-gray-600 bg-white p-4 rounded-xl border border-gray-200 shadow-sm leading-relaxed max-h-48 overflow-y-auto">
+                                                {!! $material->content !!}
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    <div class="pt-3 border-t border-gray-200 flex items-center justify-between">
+                                        <span class="text-[10px] text-gray-400">Diperbarui: {{ $material->updated_at?->diffForHumans() }}</span>
+
+                                        @if($isYoutube)
+                                            <a href="{{ $videoLink }}" target="_blank" class="text-[11px] text-rose-600 hover:underline font-semibold flex items-center gap-1">
+                                                <span>Buka di YouTube ↗</span>
+                                            </a>
+                                        @elseif($material->type === 'link' && $videoLink)
+                                            <a href="{{ $videoLink }}" target="_blank" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-1">
+                                                <span>Buka Link ↗</span>
+                                            </a>
+                                        @endif
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="col-span-full p-8 bg-gray-50 rounded-xl border border-dashed text-center text-gray-400 italic text-sm">
+                                    Belum ada materi pembelajaran yang tersedia untuk mata pelajaran ini.
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
                 </div>
 
+            
             {{-- TAB 3: UJIAN CBT --}}
             @elseif($activeTab === 'ujian')
                 <div class="p-6 bg-white rounded-2xl shadow-sm border border-gray-100 space-y-4" wire:key="tab-content-ujian">
@@ -372,82 +491,116 @@
                         @endforelse
                     </div>
                 </div>
+            
 
-            {{-- TAB 4: JADWAL & TUGAS SISWA --}}
+            {{-- TAB 4: JADWAL PELAJARAN & TUGAS KELAS --}}
             @elseif($activeTab === 'jadwal')
                 <div class="space-y-6" wire:key="tab-content-jadwal">
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         
-                        <!-- Section Jadwal Pelajaran -->
-                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-                            <div class="flex items-center justify-between border-b border-gray-100 pb-3">
-                                <h2 class="text-base font-bold text-gray-800 flex items-center gap-2">
-                                    📅 Jadwal Pelajaran
-                                </h2>
-                                <span class="text-xs bg-blue-50 text-blue-700 font-semibold px-2.5 py-1 rounded-md">
-                                    Minggu Ini
-                                </span>
-                            </div>
+                        <!-- KOLOM KIRI & TENGAH: JADWAL PELAJARAN PER HARI (SENIN S.D. JUMAT) -->
+                        <div class="lg:col-span-2 space-y-6">
+                            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+                                <div class="border-b border-gray-100 pb-3 flex items-center justify-between">
+                                    <div>
+                                        <h3 class="text-base font-bold text-gray-800">📅 Jadwal Pelajaran Mingguan</h3>
+                                        <p class="text-xs text-gray-500">Alokasi waktu KBM (1 JP = 35 Menit) beserta waktu istirahat.</p>
+                                    </div>
+                                </div>
 
-                            @if(isset($schedules) && count($schedules) > 0)
-                                <div class="space-y-3">
-                                    @foreach($schedules as $schedule)
-                                        <div class="p-3 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between">
-                                            <div>
-                                                <h4 class="font-bold text-sm text-gray-800">{{ $schedule->subject->name ?? 'Mata Pelajaran' }}</h4>
-                                                <p class="text-xs text-gray-500 mt-0.5">
-                                                    {{ $schedule->day_name ?? 'Hari' }} • {{ $schedule->start_time ?? '-' }} - {{ $schedule->end_time ?? '-' }}
-                                                </p>
-                                            </div>
-                                            <span class="text-xs font-semibold px-2 py-1 bg-white border rounded-lg text-gray-600">
-                                                Ruang {{ $schedule->room_name ?? '-' }}
-                                            </span>
+                                @foreach($daysOrder as $day)
+                                    <div class="space-y-2 pt-2">
+                                        <div class="bg-indigo-50 text-indigo-900 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-between">
+                                            <span> Hari: {{ $day }}</span>
+                                            <span class="text-[10px] font-normal text-indigo-700">Senin s.d. Jumat</span>
                                         </div>
-                                    @endforeach
-                                </div>
-                            @else
-                                <div class="p-6 bg-gray-50 rounded-xl border border-dashed text-center text-gray-400 italic text-sm">
-                                    Belum ada jadwal pelajaran yang diset untuk kelas Anda.
-                                </div>
-                            @endif
+
+                                        <div class="overflow-x-auto border border-gray-200 rounded-xl">
+                                            <table class="w-full text-left text-xs border-collapse">
+                                                <thead>
+                                                    <tr class="bg-gray-50 text-gray-600 border-b border-gray-200">
+                                                        <th class="p-2.5 text-center w-16">JP</th>
+                                                        <th class="p-2.5 w-32">Waktu (WIB)</th>
+                                                        <th class="p-2.5">Mata Pelajaran</th>
+                                                        <th class="p-2.5 text-center w-24">Ruangan</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="divide-y divide-gray-100">
+                                                    @foreach($masterTimes as $slot)
+                                                        @if($slot['type'] === 'break')
+                                                            <!-- BARIS ISTIRAHAT -->
+                                                            <tr class="bg-gray-50 italic text-gray-500 font-medium">
+                                                                <td class="p-2 text-center">-</td>
+                                                                <td class="p-2">{{ $slot['time'] }}</td>
+                                                                <td colspan="2" class="p-2 text-center text-amber-700 font-semibold">
+                                                                    ☕ {{ $slot['label'] }}
+                                                                </td>
+                                                            </tr>
+                                                        @else
+                                                            <!-- BARIS JAM PELAJARAN -->
+                                                            @php
+                                                                $matched = $rawSchedules->first(function($item) use ($day, $slot) {
+                                                                    return $item->day_name === $day && 
+                                                                        substr($item->start_time, 0, 5) <= substr($slot['time'], 0, 5) && 
+                                                                        substr($item->end_time, 0, 5) >= substr($slot['time'], 8, 5);
+                                                                });
+                                                            @endphp
+                                                            <tr class="hover:bg-gray-50/50">
+                                                                <td class="p-2.5 text-center font-bold text-gray-700">Ke-{{ $slot['period'] }}</td>
+                                                                <td class="p-2.5 text-gray-600 font-medium">{{ $slot['time'] }}</td>
+                                                                <td class="p-2.5 font-semibold text-gray-800">
+                                                                    {{ $matched->subject->name ?? '<span class="text-gray-300 font-normal">- Kosong -</span>' }}
+                                                                </td>
+                                                                <td class="p-2.5 text-center">
+                                                                    @if($matched && $matched->room_name)
+                                                                        <span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-[10px] font-bold">{{ $matched->room_name }}</span>
+                                                                    @else
+                                                                        <span class="text-gray-300">-</span>
+                                                                    @endif
+                                                                </td>
+                                                            </tr>
+                                                        @endif
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
 
-                        <!-- Section Tugas & Deadline -->
-                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-                            <div class="flex items-center justify-between border-b border-gray-100 pb-3">
-                                <h2 class="text-base font-bold text-gray-800 flex items-center gap-2">
-                                    📌 Tugas Kelas
-                                </h2>
-                                <span class="text-xs bg-amber-50 text-amber-700 font-semibold px-2.5 py-1 rounded-md">
-                                    Tenggat Waktu
-                                </span>
-                            </div>
+                        <!-- KOLOM KANAN: TUGAS KELAS / DEADLINE -->
+                        <div class="space-y-6">
+                            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 sticky top-6">
+                                <div class="border-b border-gray-100 pb-3">
+                                    <h3 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                                        📌 Tugas Kelas & Tenggat
+                                    </h3>
+                                    <p class="text-xs text-gray-500">Daftar tugas aktif dari guru.</p>
+                                </div>
 
-                            @if(isset($assignments) && count($assignments) > 0)
-                                <div class="space-y-3">
-                                    @foreach($assignments as $assignment)
-                                        <div class="p-3 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between gap-3">
-                                            <div class="min-w-0 flex-1">
-                                                <span class="text-[10px] font-bold text-indigo-600 uppercase px-1.5 py-0.5 bg-indigo-50 rounded">
-                                                    {{ $assignment->subject->name ?? 'Umum' }}
-                                                </span>
-                                                <h4 class="font-semibold text-sm text-gray-800 truncate mt-1">{{ $assignment->title }}</h4>
-                                                <p class="text-xs text-gray-500 line-clamp-1">{{ $assignment->description ?? 'Tidak ada petunjuk tambahan.' }}</p>
-                                            </div>
-                                            <div class="text-right flex-shrink-0">
-                                                <span class="text-xs font-bold text-red-600 block">
-                                                    {{ isset($assignment->due_date) ? \Carbon\Carbon::parse($assignment->due_date)->format('d M, H:i') : '-' }}
-                                                </span>
-                                                <span class="text-[10px] text-gray-400">Tenggat Waktu</span>
-                                            </div>
+                                @forelse($assignments as $assignment)
+                                    <div class="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-2 hover:shadow-sm transition">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                                                {{ $assignment->subject->name ?? 'Umum' }}
+                                            </span>
+                                            <span class="text-[10px] font-bold text-red-600">
+                                                {{ \Carbon\Carbon::parse($assignment->due_date)->format('d M Y, H:i') }}
+                                            </span>
                                         </div>
-                                    @endforeach
-                                </div>
-                            @else
-                                <div class="p-6 bg-gray-50 rounded-xl border border-dashed text-center text-gray-400 italic text-sm">
-                                    Tidak ada tugas aktif yang perlu dikerjakan saat ini.
-                                </div>
-                            @endif
+
+                                        <h4 class="font-bold text-sm text-gray-800">{{ $assignment->title }}</h4>
+                                        <div class="text-xs text-gray-600 leading-relaxed line-clamp-3">
+                                            {!! $assignment->description !!}
+                                        </div>
+                                    </div>
+                                @empty
+                                    <div class="p-8 bg-gray-50 rounded-xl border border-dashed text-center text-gray-400 italic text-xs">
+                                        Tidak ada tugas aktif yang perlu dikerjakan saat ini. 🎉
+                                    </div>
+                                @endforelse
+                            </div>
                         </div>
 
                     </div>

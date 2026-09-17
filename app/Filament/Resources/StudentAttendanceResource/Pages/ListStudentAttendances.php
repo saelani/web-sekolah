@@ -8,6 +8,7 @@ use Filament\Actions;
 use Filament\Forms;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class ListStudentAttendances extends ListRecords
 {
@@ -22,7 +23,7 @@ class ListStudentAttendances extends ListRecords
                 ->color('success')
                 ->url(StudentAttendanceResource::getUrl('batch-attendance')),
 
-            // TOMBOL CETAK LAPORAN PREVIEW (DIRECT TAB BARU)
+            // TOMBOL CETAK LAPORAN BERDASARKAN BULAN
             Actions\Action::make('printReport')
                 ->label('Laporan Presensi')
                 ->icon('heroicon-o-printer')
@@ -46,29 +47,54 @@ class ListStudentAttendances extends ListRecords
 
                             return $query->pluck('name', 'id');
                         })
-                        ->exists('acad_classes', 'id')
+                        ->searchable()
+                        ->preload()
                         ->required(),
 
-                    Forms\Components\DatePicker::make('start_date')
-                        ->label('Tanggal Mulai')
-                        ->default(now()->startOfMonth())
+                    // Filter Bulan
+                    Forms\Components\Select::make('month')
+                        ->label('Bulan')
+                        ->options([
+                            '1'  => 'Januari',
+                            '2'  => 'Februari',
+                            '3'  => 'Maret',
+                            '4'  => 'April',
+                            '5'  => 'Mei',
+                            '6'  => 'Juni',
+                            '7'  => 'Juli',
+                            '8'  => 'Agustus',
+                            '9'  => 'September',
+                            '10' => 'Oktober',
+                            '11' => 'November',
+                            '12' => 'Desember',
+                        ])
+                        ->default(now()->month)
                         ->required(),
 
-                    Forms\Components\DatePicker::make('end_date')
-                        ->label('Tanggal Selesai')
-                        ->default(now()->endOfMonth())
+                    // Filter Tahun
+                    Forms\Components\Select::make('year')
+                        ->label('Tahun')
+                        ->options(function () {
+                            $years = range(now()->year - 2, now()->year + 1);
+                            return array_combine($years, $years);
+                        })
+                        ->default(now()->year)
                         ->required(),
                 ])
-                ->modalHeading('Filter Laporan Presensi')
+                ->modalHeading('Filter Laporan Presensi Bulanan')
                 ->modalSubmitActionLabel('Buka PDF Laporan')
                 ->action(function (array $data) {
+                    // Hitung otomatis tanggal awal dan akhir dari bulan & tahun yang dipilih
+                    $startDate = Carbon::createFromDate($data['year'], $data['month'], 1)->startOfMonth()->format('Y-m-d');
+                    $endDate = Carbon::createFromDate($data['year'], $data['month'], 1)->endOfMonth()->format('Y-m-d');
+
                     $url = route('student-attendance.pdf', [
                         'class_id'   => $data['class_id'],
-                        'start_date' => $data['start_date'],
-                        'end_date'   => $data['end_date'],
+                        'start_date' => $startDate,
+                        'end_date'   => $endDate,
                     ]);
 
-                    // Trik aman memicu pencetakan/preview di tab baru tanpa terblokir popup blocker
+                    // Membuka PDF di tab baru
                     $this->js("
                         const a = document.createElement('a');
                         a.href = '{$url}';

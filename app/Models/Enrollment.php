@@ -54,4 +54,6 @@ class Enrollment extends Model
     {
         return $this->hasOne(GradeReportCard::class, 'enrollment_id');
     }
+
+   
 }

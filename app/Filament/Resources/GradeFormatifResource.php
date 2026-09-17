@@ -5,7 +5,8 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\GradeFormatifResource\Pages;
 use App\Models\GradeFormatif;
 use App\Models\LearningObjective;
-use App\Models\Enrollment; // Gunakan model Enrollment
+use App\Models\SumativeScope; 
+use App\Models\Enrollment;
 use App\Models\Subject;
 use App\Services\GradeCalculationService;
 use App\Traits\HasRoleScope;
@@ -24,6 +25,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\DeleteAction;
+use Illuminate\Database\Eloquent\Builder;
 
 class GradeFormatifResource extends Resource
 {
@@ -58,12 +60,48 @@ class GradeFormatifResource extends Resource
                             })
                             ->live()
                             ->dehydrated(false)
-                            ->afterStateUpdated(fn (Set $set) => $set('learning_objective_id', null))
+                            ->afterStateUpdated(function (Set $set) {
+                                $set('learning_objective_id', null);
+                                $set('sumative_scope_id', null);
+                            })
                             ->required(fn (string $operation): bool => $operation === 'create'),
 
-                        // 2. Select Tujuan Pembelajaran (TP) Terfilter sesuai Mapel
+                        // 2. Pilih Berdasarkan Jenis Penilaian (Bab atau TP)
+                        Select::make('assessment_type')
+                            ->label('Acuan Penilaian')
+                            ->options([
+                                'chapter' => 'Penilaian Bab (Lingkup Materi)',
+                                'tp'      => 'Penilaian Tujuan Pembelajaran (TP)',
+                            ])
+                            ->default('tp')
+                            ->live()
+                            ->afterStateUpdated(function (Set $set) {
+                                $set('learning_objective_id', null);
+                                $set('sumative_scope_id', null);
+                            })
+                            ->required(),
+
+                        // 3. Select Bab / Lingkup Materi (Hanya muncul jika dipilih 'chapter')
+                        Select::make('sumative_scope_id')
+                            ->label('Pilih Bab / Lingkup Materi')
+                            ->options(function (Get $get, ?GradeFormatif $record) {
+                                $subjectId = $get('subject_id') ?? $record?->subject_id;
+
+                                if (!$subjectId) {
+                                    return SumativeScope::pluck('name', 'id');
+                                }
+
+                                return SumativeScope::where('subject_id', $subjectId)
+                                    ->pluck('name', 'id');
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->visible(fn (Get $get) => $get('assessment_type') === 'chapter')
+                            ->required(fn (Get $get) => $get('assessment_type') === 'chapter'),
+
+                        // 4. Select Tujuan Pembelajaran / TP (Hanya muncul jika dipilih 'tp')
                         Select::make('learning_objective_id')
-                            ->label('Tujuan Pembelajaran (TP)')
+                            ->label('Pilih Tujuan Pembelajaran (TP)')
                             ->options(function (Get $get, ?GradeFormatif $record) {
                                 $subjectId = $get('subject_id') ?? $record?->learningObjective?->subject_id;
 
@@ -78,25 +116,27 @@ class GradeFormatifResource extends Resource
                                     ]);
                             })
                             ->searchable()
-                            ->required()
+                            ->visible(fn (Get $get) => $get('assessment_type') === 'tp')
+                            ->required(fn (Get $get) => $get('assessment_type') === 'tp')
                             ->disabled(fn (Get $get, ?GradeFormatif $record) => !$get('subject_id') && !$record),
 
-                        // 3. Select Siswa (Menggunakan Model Enrollment)
+                        // 5. Select Siswa (Model Enrollment)
                         Select::make('enrollment_id')
                             ->label('Nama Siswa')
                             ->options(function () {
                                 return Enrollment::with(['student', 'class'])
                                     ->get()
                                     ->mapWithKeys(function ($enrollment) {
-                                        $studentName = $enrollment->student->name ?? 'Siswa Tanpa Nama';
-                                        $className = $enrollment->class->name ?? '-';
+                                        $studentName = optional($enrollment->student)->name ?? 'Siswa Tanpa Nama';
+                                        $className = optional($enrollment->class)->name ?? '-';
                                         return [$enrollment->id => "{$studentName} ({$className})"];
                                     });
                             })
                             ->searchable()
+                            ->preload()
                             ->required(),
 
-                        // 4. Input Nilai & Ketuntasan
+                        // 6. Input Nilai & Ketuntasan
                         TextInput::make('score')
                             ->numeric()
                             ->minValue(0)
@@ -127,10 +167,18 @@ class GradeFormatifResource extends Resource
                     ->sortable()
                     ->searchable(),
 
+                TextColumn::make('sumativeScope.name')
+                    ->label('Bab / Lingkup Materi')
+                    ->badge()
+                    ->color('warning')
+                    ->placeholder('-')
+                    ->searchable(),
+
                 TextColumn::make('learningObjective.code')
                     ->label('Kode TP')
                     ->badge()
-                    ->color('sky'),
+                    ->color('sky')
+                    ->placeholder('-'),
 
                 TextColumn::make('score')
                     ->label('Nilai')
@@ -145,6 +193,10 @@ class GradeFormatifResource extends Resource
                 SelectFilter::make('subject')
                     ->relationship('learningObjective.subject', 'name')
                     ->label('Filter Mata Pelajaran'),
+
+                SelectFilter::make('sumative_scope_id')
+                    ->label('Filter Bab')
+                    ->options(SumativeScope::pluck('name', 'id')),
             ])
             ->actions([
                 EditAction::make()
@@ -163,7 +215,7 @@ class GradeFormatifResource extends Resource
         return [
             'index' => Pages\ListGradeFormatifs::route('/'),
             'create' => Pages\CreateGradeFormatif::route('/create'),
-            'batch' => Pages\BatchGradeFormatif::route('/batch'), // Route baru
+            'batch' => Pages\BatchGradeFormatif::route('/batch'),
             'edit' => Pages\EditGradeFormatif::route('/{record}/edit'),
         ];
     }

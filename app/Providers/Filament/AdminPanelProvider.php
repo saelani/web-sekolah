@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\BackupManager;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -18,8 +19,8 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\URL;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
-use App\Filament\Pages\BackupManager;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -52,7 +53,6 @@ class AdminPanelProvider extends PanelProvider
                 Pages\Dashboard::class,
                 BackupManager::class,
             ])
-            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
                 Widgets\AccountWidget::class,
@@ -76,6 +76,11 @@ class AdminPanelProvider extends PanelProvider
 
     public function boot(): void
     {
+        // 0. DETEKSI PROTOKOL DINAMIS (HTTP untuk IP Lokal / HTTPS untuk Cloudflare Tunnel)
+        if (request()->hasHeader('X-Forwarded-Proto')) {
+            URL::forceScheme(request()->header('X-Forwarded-Proto'));
+        }
+
         // 1. INJECT NAMA USER DI SEBELAH AVATAR TOPBAR
         FilamentView::registerRenderHook(
             'panels::user-menu.before',

@@ -11,10 +11,8 @@ class EnsureUserIsStudent
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $guard = Auth::guard('student');
-
-        // Belum login sebagai siswa
-        if (! $guard->check()) {
+        // Cek apakah user sudah login menggunakan guard default
+        if (! Auth::check()) {
             return redirect()
                 ->route('student.login')
                 ->withErrors([
@@ -22,12 +20,11 @@ class EnsureUserIsStudent
                 ]);
         }
 
-        $user = $guard->user();
+        $user = Auth::user();
 
-        // Pastikan user memiliki relasi student
-        if (! $user || ! $user->student) {
-
-            $guard->logout();
+        // Pastikan user memiliki relasi student atau rolenya student
+        if (! $user->student && ! $user->hasRole('student')) {
+            Auth::logout();
 
             $request->session()->invalidate();
             $request->session()->regenerateToken();

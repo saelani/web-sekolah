@@ -12,6 +12,9 @@ use App\Models\CbtExam;
 use App\Models\CbtExamSession;
 use App\Models\CbtStudentAnswer;
 use App\Models\CbtOption;
+use App\Models\Material; 
+use App\Models\Schedule;     // <-- Tambahan Model Schedule
+use App\Models\Assignment;   // <-- Tambahan Model Assignment
 use App\Models\Enrollment;
 use App\Models\AcademicYear;
 
@@ -102,7 +105,6 @@ class Dashboard extends Component
 
         $this->remainingSeconds = max(0, now()->diffInSeconds($this->activeSession->max_end_time, false));
 
-        // Ambil semua jawaban yang pernah disimpan untuk sesi ini
         $existingAnswers = CbtStudentAnswer::where('cbt_exam_session_id', $this->activeSession->id)->get();
 
         $this->userAnswers = [];
@@ -224,6 +226,21 @@ class Dashboard extends Component
         $this->activeTab = 'ujian';
     }
 
+    public function convertToEmbedUrl($url)
+    {
+        if (empty($url)) return '';
+
+        if (preg_match('/youtu\.be\/([a-zA-Z0-9_-]+)/', $url, $matches)) {
+            return 'https://www.youtube.com/embed/' . $matches[1];
+        }
+
+        if (preg_match('/watch\?v=([a-zA-Z0-9_-]+)/', $url, $matches)) {
+            return 'https://www.youtube.com/embed/' . $matches[1];
+        }
+
+        return $url;
+    }
+
     public function render()
     {
         $user = Auth::guard('student')->user() ?? Auth::user();
@@ -233,11 +250,30 @@ class Dashboard extends Component
         $recentSavings = collect();
         $attendances = ['hadir' => 0, 'sakit' => 0, 'izin' => 0, 'alfa' => 0];
         $cbtExams = collect();
-        $schedules = collect();
+        $materials = collect(); 
+        $rawSchedules = collect();
         $assignments = collect();
+
+        // Master waktu standar sekolah dasar (1 JP = 35 Menit + Jeda Istirahat 15 Menit)
+        $masterTimes = [
+            ['period' => '1', 'time' => '06:30 - 07:05', 'type' => 'lesson'],
+            ['period' => '2', 'time' => '07:05 - 07:40', 'type' => 'lesson'],
+            ['period' => '3', 'time' => '07:40 - 08:15', 'type' => 'lesson'],
+            ['period' => '4', 'time' => '08:15 - 08:50', 'type' => 'lesson'],
+            ['period' => '-', 'time' => '08:50 - 09:05', 'type' => 'break', 'label' => 'Istirahat I'],
+            ['period' => '5', 'time' => '09:05 - 09:40', 'type' => 'lesson'],
+            ['period' => '6', 'time' => '09:40 - 10:15', 'type' => 'lesson'],
+            ['period' => '7', 'time' => '10:15 - 10:50', 'type' => 'lesson'],
+            ['period' => '-', 'time' => '10:50 - 11:05', 'type' => 'break', 'label' => 'Istirahat II / Sholat Dzuhur'],
+            ['period' => '8', 'time' => '11:05 - 11:40', 'type' => 'lesson'],
+            ['period' => '9', 'time' => '11:40 - 12:15', 'type' => 'lesson'],
+        ];
+
+        $daysOrder = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
 
         if ($studentUser) {
             $studentId = $studentUser->id;
+            $classId = $studentUser->class_id ?? null;
 
             $totalSavings = StudentSaving::where('student_id', $studentId)->sum('amount');
             $recentSavings = StudentSaving::where('student_id', $studentId)
@@ -250,8 +286,8 @@ class Dashboard extends Component
             $attendances['izin']  = StudentAttendance::where('student_id', $studentId)->where('status', 'izin')->count();
             $attendances['alfa']  = StudentAttendance::where('student_id', $studentId)->where('status', 'alfa')->count();
 
+            // Query CBT Exams
             $cbtExamsQuery = CbtExam::where('is_active', true);
-
             $cbtExamsQuery->with(['subject', 'sessions' => function ($q) use ($studentId) {
                 $q->where('student_id', $studentId);
             }]);
@@ -259,8 +295,35 @@ class Dashboard extends Component
             if (! empty($this->selectedSubject)) {
                 $cbtExamsQuery->where('subject_id', $this->selectedSubject);
             }
-
             $cbtExams = $cbtExamsQuery->get();
+
+            // Query Materials
+            $materialsQuery = Material::where('is_active', true);
+            
+            if (! empty($this->selectedSubject)) {
+                $subjectModel = Subject::find($this->selectedSubject);
+                if ($subjectModel) {
+                    $materialsQuery->where('subject', 'like', '%' . $subjectModel->name . '%');
+                }
+            }
+
+            if (isset($studentUser->class_level)) {
+                $materialsQuery->where('class_level', $studentUser->class_level);
+            }
+
+            $materials = $materialsQuery->latest()->get();
+
+            // Query Schedules & Assignments berdasarkan kelas siswa
+            if ($classId) {
+                $rawSchedules = Schedule::with('subject')
+                    ->where('class_id', $classId)
+                    ->get();
+
+                $assignments = Assignment::with('subject')
+                    ->where('class_id', $classId)
+                    ->orderBy('due_date', 'asc')
+                    ->get();
+            }
         }
 
         $allSubjects = Subject::orderBy('name', 'asc')->get();
@@ -273,7 +336,10 @@ class Dashboard extends Component
             'attendances'   => $attendances,
             'allSubjects'   => $allSubjects,
             'cbtExams'      => $cbtExams,
-            'schedules'     => $schedules, 
+            'materials'     => $materials,
+            'masterTimes'   => $masterTimes,
+            'daysOrder'     => $daysOrder,
+            'rawSchedules'  => $rawSchedules, 
             'assignments'   => $assignments, 
         ])->layout('components.layouts.app');
     }
