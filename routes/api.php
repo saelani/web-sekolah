@@ -5,6 +5,20 @@ use App\Http\Controllers\Api\StudentAuthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\HomeController;
+use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\StudentDashboardController;
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/student/dashboard', [StudentDashboardController::class, 'index']);
+    Route::post('/student/exam/{examId}/start', [StudentDashboardController::class, 'startExam']);
+    Route::post('/student/exam/{examId}/submit', [StudentDashboardController::class, 'submitExam']);
+});
+
+
+Route::post('/login', [AuthController::class, 'login']);
+Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+Route::get('/me', [AuthController::class, 'me'])->middleware('auth:sanctum');
+
 
 Route::get('/home', [HomeController::class, 'index']);
 

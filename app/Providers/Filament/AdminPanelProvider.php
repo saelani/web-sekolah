@@ -30,6 +30,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            // ->authLogoutRedirectUsing(fn (): string => route('home'))
             // ->logoutRedirectUrl(url('/'))
             ->darkMode(false)
             ->login()
