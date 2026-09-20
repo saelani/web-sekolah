@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use App\Traits\HasRoleScope; // Integrated HasRoleScope
@@ -54,6 +55,4 @@ class Enrollment extends Model
     {
         return $this->hasOne(GradeReportCard::class, 'enrollment_id');
     }
-
-   
 }

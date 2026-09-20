@@ -56,7 +56,7 @@ class ListGradeExtracurriculars extends ListRecords
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('warning')
                 ->action(function () {
-                    return Excel::download(new GradeExtracurricularsExport, 'Nilai_Ekstrakurikuler_' . date('Y-m-d') . '.xlsx');
+                    return Excel::download(new GradeExtracurricularsExport, 'Nilai_Ekstrakurikuler_'.date('Y-m-d').'.xlsx');
                 }),
         ];
     }

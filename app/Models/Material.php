@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -25,18 +26,18 @@ class Material extends Model
     {
         parent::boot();
         static::creating(function ($model) {
-            $model->slug = Str::slug($model->title) . '-' . uniqid();
+            $model->slug = Str::slug($model->title).'-'.uniqid();
         });
     }
 
     // Di App\Models\Material.php
     public function subject()
     {
-    return $this->belongsTo(\App\Models\Subject::class);
+        return $this->belongsTo(Subject::class);
     }
 
     public function classroom()
     {
-    return $this->belongsTo(\App\Models\Classroom::class);
+        return $this->belongsTo(Classroom::class);
     }
 }

@@ -3,8 +3,8 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\GradeExtracurricularResource\Pages;
-use App\Models\ExtracurricularScore;
 use App\Models\Enrollment;
+use App\Models\ExtracurricularScore;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -15,18 +15,21 @@ use Illuminate\Database\Eloquent\Builder;
 class GradeExtracurricularResource extends Resource
 {
     protected static ?string $model = ExtracurricularScore::class;
-    
+
     protected static ?string $navigationIcon = 'heroicon-o-trophy';
+
     protected static ?string $navigationGroup = 'Penilaian';
+
     protected static ?string $navigationLabel = 'Nilai Ekstrakurikuler';
+
     protected static ?int $navigationSort = 3;
 
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->with([
-            'enrollment.student', 
-            'enrollment.class', 
-            'extracurricular'
+            'enrollment.student',
+            'enrollment.class',
+            'extracurricular',
         ]);
     }
 
@@ -42,6 +45,7 @@ class GradeExtracurricularResource extends Resource
                                 Enrollment::with(['student', 'class'])->get()->mapWithKeys(function ($enrollment) {
                                     $studentName = optional($enrollment->student)->name ?? 'Siswa Tanpa Nama';
                                     $className = optional($enrollment->class)->name ?? 'Tanpa Kelas';
+
                                     return [$enrollment->id => "{$studentName} ({$className})"];
                                 })
                             )
@@ -120,9 +124,9 @@ class GradeExtracurricularResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListGradeExtracurriculars::route('/'),
+            'index' => Pages\ListGradeExtracurriculars::route('/'),
             'create' => Pages\CreateGradeExtracurricular::route('/create'),
-            'edit'   => Pages\EditGradeExtracurricular::route('/{record}/edit'),
+            'edit' => Pages\EditGradeExtracurricular::route('/{record}/edit'),
         ];
     }
 }

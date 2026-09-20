@@ -6,7 +6,6 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
-use Throwable;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -31,8 +30,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (Throwable $e, Request $request) {
             if ($request->hasHeader('X-Livewire') || $request->is('admin*')) {
                 // Ambil pesan error (tampilkan pesan mendetail hanya saat debug mode aktif)
-                $errorMessage = config('app.debug') 
-                    ? $e->getMessage() 
+                $errorMessage = config('app.debug')
+                    ? $e->getMessage()
                     : 'Terjadi kesalahan pada sistem. Silakan coba beberapa saat lagi atau hubungi Administrator.';
 
                 Notification::make()

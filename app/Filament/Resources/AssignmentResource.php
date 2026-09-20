@@ -4,8 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\AssignmentResource\Pages;
 use App\Models\Assignment;
-use App\Models\ClassRoom;
-use App\Models\Subject;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -17,9 +15,13 @@ class AssignmentResource extends Resource
     protected static ?string $model = Assignment::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
+
     protected static ?string $navigationGroup = 'Akademik SD';
+
     protected static ?string $navigationLabel = 'Tugas Kelas';
+
     protected static ?string $modelLabel = 'Tugas';
+
     protected static ?int $navigationSort = 5;
 
     public static function form(Form $form): Form

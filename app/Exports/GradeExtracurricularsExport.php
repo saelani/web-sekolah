@@ -23,7 +23,7 @@ class GradeExtracurricularsExport implements FromCollection, WithHeadings, WithM
             'ID Ekstrakurikuler',
             'Nama Ekstrakurikuler',
             'Nilai / Predikat',
-            'Deskripsi'
+            'Deskripsi',
         ];
     }
 

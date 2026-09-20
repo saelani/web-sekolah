@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\TeacherSubjectClassesResource\Pages;
@@ -15,9 +16,13 @@ class TeacherSubjectClassesResource extends Resource
     use HasRoleScope;
 
     protected static ?string $model = TeacherSubjectClass::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-briefcase';
+
     protected static ?string $navigationGroup = 'Akademik';
+
     protected static ?string $navigationLabel = 'Pembagian Pengajar (Mapel)';
+
     protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
@@ -110,10 +115,9 @@ class TeacherSubjectClassesResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListTeacherSubjectClasses::route('/'),
-            'create' => Pages\CreateTeacherSubjectClass::route('/create'),
-            'edit'   => Pages\EditTeacherSubjectClass::route('/{record}/edit'),
+            'index' => Pages\ListTeacherSubjectClasses::route('/'),
+            'create' => Pages\CreateTeacherSubjectClasses::route('/create'),
+            'edit' => Pages\EditTeacherSubjectClasses::route('/{record}/edit'),
         ];
     }
-    
 }

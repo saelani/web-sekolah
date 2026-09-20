@@ -8,14 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('acad_academic_years', function (Blueprint $table) {
-            $table->id();
-            $table->string('year', 9);
-            $table->enum('semester', ['1', '2']);
-            $table->boolean('is_active')->default(false)->index('idx_acad_ay_active');
-            $table->timestamps();
-        });
-
+        // 1. acad_teachers
         Schema::create('acad_teachers', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->nullable()->constrained('sys_users')->nullOnDelete();
@@ -27,10 +20,11 @@ return new class extends Migration
             $table->enum('gender', ['L', 'P']);
             $table->string('photo_path')->nullable();
             $table->enum('role_type', ['headmaster', 'class_teacher', 'subject_teacher'])->default('class_teacher');
-            $table->boolean('is_active')->default(true);
+            $table->boolean('is_active')->default(1);
             $table->timestamps();
         });
 
+        // 2. acad_classes
         Schema::create('acad_classes', function (Blueprint $table) {
             $table->id();
             $table->foreignId('academic_year_id')->constrained('acad_academic_years')->cascadeOnDelete();
@@ -43,15 +37,7 @@ return new class extends Migration
             $table->index(['academic_year_id', 'level', 'phase'], 'idx_acad_classes_search');
         });
 
-        Schema::create('acad_subjects', function (Blueprint $table) {
-            $table->id();
-            $table->string('code', 10)->unique();
-            $table->string('name', 100);
-            $table->enum('category', ['agama', 'umum', 'muatan_lokal']);
-            $table->unsignedTinyInteger('order_number')->default(0);
-            $table->timestamps();
-        });
-
+        // 3. acad_students
         Schema::create('acad_students', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->nullable()->constrained('sys_users')->nullOnDelete();
@@ -71,6 +57,7 @@ return new class extends Migration
             $table->index(['religion', 'gender', 'name'], 'idx_acad_students_filter');
         });
 
+        // 4. acad_enrollments
         Schema::create('acad_enrollments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('academic_year_id')->constrained('acad_academic_years')->cascadeOnDelete();
@@ -81,6 +68,19 @@ return new class extends Migration
             $table->unique(['academic_year_id', 'student_id'], 'uk_acad_enrollment');
         });
 
+        // 5. acad_schedules
+        Schema::create('acad_schedules', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('class_id')->constrained('acad_classes')->cascadeOnDelete();
+            $table->foreignId('subject_id')->constrained('acad_subjects')->cascadeOnDelete();
+            $table->string('day_name');
+            $table->time('start_time');
+            $table->time('end_time');
+            $table->string('room_name')->nullable();
+            $table->timestamps();
+        });
+
+        // 6. acad_teacher_subject_classes
         Schema::create('acad_teacher_subject_classes', function (Blueprint $table) {
             $table->id();
             $table->foreignId('teacher_id')->constrained('acad_teachers')->cascadeOnDelete();
@@ -96,11 +96,10 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('acad_teacher_subject_classes');
+        Schema::dropIfExists('acad_schedules');
         Schema::dropIfExists('acad_enrollments');
         Schema::dropIfExists('acad_students');
-        Schema::dropIfExists('acad_subjects');
         Schema::dropIfExists('acad_classes');
         Schema::dropIfExists('acad_teachers');
-        Schema::dropIfExists('acad_academic_years');
     }
 };

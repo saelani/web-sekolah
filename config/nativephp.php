@@ -23,6 +23,6 @@ return [
     */
     'features' => [
         'haptic' => true,      // Getar lembut saat tombol simpan ditekan
-        'notification' => true,// Push notification lokal Android saat cetak rapor selesai
+        'notification' => true, // Push notification lokal Android saat cetak rapor selesai
     ],
 ];

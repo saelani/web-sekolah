@@ -23,11 +23,11 @@ class HomeScreen extends Component
     public function render()
     {
         $profile = SchoolProfile::first();
-        
+
         $posts = Post::with(['category', 'author'])
             ->where('is_published', true)
             ->when($this->search, function ($query) {
-                $query->where('title', 'like', '%' . $this->search . '%');
+                $query->where('title', 'like', '%'.$this->search.'%');
             })
             ->latest('published_at')
             ->paginate(6);

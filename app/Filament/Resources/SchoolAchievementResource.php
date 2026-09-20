@@ -22,8 +22,11 @@ class SchoolAchievementResource extends Resource
     use HasRoleScope;
 
     protected static ?string $model = SchoolAchievement::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-trophy';
+
     protected static ?string $navigationGroup = 'Manajemen Web';
+
     protected static ?string $navigationLabel = 'Prestasi Sekolah';
 
     public static function form(Form $form): Form

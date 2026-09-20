@@ -3,32 +3,32 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable; 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 class Student extends Authenticatable
 {
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $table = 'acad_students';
 
     protected $fillable = [
-        'user_id', 
-        'nis', 
-        'nisn', 
-        'name', 
+        'user_id',
+        'nis',
+        'nisn',
+        'name',
         'password',
-        'gender', 
-        'religion', 
-        'pob', 
-        'dob', 
-        'address', 
-        'parent_name', 
-        'photo_path', 
-        'class_id'
+        'gender',
+        'religion',
+        'pob',
+        'dob',
+        'address',
+        'parent_name',
+        'photo_path',
+        'class_id',
     ];
 
     protected $hidden = [
@@ -48,8 +48,9 @@ class Student extends Authenticatable
     public function getPhotoUrlAttribute()
     {
         if ($this->photo_path) {
-            return "http://192.168.100.234:8004/storage/" . $this->photo_path;
+            return 'http://192.168.100.234:8004/storage/'.$this->photo_path;
         }
+
         return null;
     }
 

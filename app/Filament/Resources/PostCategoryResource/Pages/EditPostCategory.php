@@ -17,7 +17,6 @@ class EditPostCategory extends EditRecord
         ];
     }
 
-
     protected function getRedirectUrl(): string
     {
         return $resource = static::getResource()::getUrl('index');

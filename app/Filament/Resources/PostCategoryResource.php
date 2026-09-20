@@ -20,8 +20,11 @@ class PostCategoryResource extends Resource
     use HasRoleScope;
 
     protected static ?string $model = PostCategory::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-tag';
+
     protected static ?string $navigationGroup = 'Manajemen Web';
+
     protected static ?string $navigationLabel = 'Kategori Berita';
 
     public static function form(Form $form): Form

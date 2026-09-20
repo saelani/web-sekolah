@@ -3,32 +3,34 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\GradeFinalScoreResource\Pages;
-use App\Models\GradeFinalScore;
 use App\Models\ClassRoom;
+use App\Models\GradeFinalScore;
 use App\Models\Subject;
 use App\Services\GradeCalculationService;
 use App\Traits\HasRoleScope;
-use Filament\Forms\Form;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Form;
 use Filament\Forms\Get;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\EditAction;
-use Filament\Notifications\Notification;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
 
 class GradeFinalScoreResource extends Resource
 {
     use HasRoleScope; // <-- getEloquentQuery() otomatis ter-override dari Trait!
 
     protected static ?string $model = GradeFinalScore::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
+
     protected static ?string $navigationGroup = 'Asesmen Intrakurikuler';
+
     protected static ?string $navigationLabel = 'Nilai Akhir & Deskripsi CP';
 
     public static function form(Form $form): Form
@@ -94,7 +96,7 @@ class GradeFinalScoreResource extends Resource
                 TextColumn::make('final_score')
                     ->label('Nilai Akhir (NA)')
                     ->badge()
-                    ->color(fn (string $state): string => (float)$state >= 70 ? 'success' : 'danger')
+                    ->color(fn (string $state): string => (float) $state >= 70 ? 'success' : 'danger')
                     ->sortable(),
 
                 TextColumn::make('highest_achieved_description')
@@ -119,6 +121,7 @@ class GradeFinalScoreResource extends Resource
                                 $query = ClassRoom::query();
                                 // Menggunakan helper dari HasRoleScope
                                 static::applyRoleScope($query, 'teacher_id');
+
                                 return $query->pluck('name', 'id');
                             })
                             ->reactive()
@@ -132,7 +135,7 @@ class GradeFinalScoreResource extends Resource
                                 $classId = $get('class_id');
                                 $roles = static::getUserRoles($user);
 
-                                if (!array_intersect($roles, ['admin', 'headmaster', 'super_admin']) && !($user->is_admin ?? false)) {
+                                if (! array_intersect($roles, ['admin', 'headmaster', 'super_admin']) && ! ($user->is_admin ?? false)) {
                                     $teacherId = $user->teacher?->id ?? $user->teacher_id;
                                     $query->whereHas('teacherSubjectClasses', function ($q) use ($teacherId, $classId) {
                                         $q->where('teacher_id', $teacherId);

@@ -13,9 +13,13 @@ use Filament\Tables\Table;
 class GradeP5ScoreResource extends Resource
 {
     protected static ?string $model = GradeP5Score::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-star';
+
     protected static ?string $navigationGroup = 'Penilaian P5';
+
     protected static ?string $navigationLabel = 'Input Nilai P5';
+
     protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form
@@ -39,10 +43,10 @@ class GradeP5ScoreResource extends Resource
                         Forms\Components\Select::make('score')
                             ->label('Capaian P5')
                             ->options([
-                                'BB'  => 'Belum Berkembang (BB)',
-                                'MB'  => 'Mulai Berkembang (MB)',
+                                'BB' => 'Belum Berkembang (BB)',
+                                'MB' => 'Mulai Berkembang (MB)',
                                 'BSH' => 'Berkembang Sesuai Harapan (BSH)',
-                                'SB'  => 'Sangat Berkembang (SB)',
+                                'SB' => 'Sangat Berkembang (SB)',
                             ])
                             ->required(),
                     ])->columns(2),
@@ -73,10 +77,10 @@ class GradeP5ScoreResource extends Resource
                     ->label('Predikat')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'SB'  => 'success',
+                        'SB' => 'success',
                         'BSH' => 'info',
-                        'MB'  => 'warning',
-                        'BB'  => 'danger',
+                        'MB' => 'warning',
+                        'BB' => 'danger',
                         default => 'gray',
                     })
                     ->sortable(),
@@ -96,10 +100,10 @@ class GradeP5ScoreResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListGradeP5Scores::route('/'),
+            'index' => Pages\ListGradeP5Scores::route('/'),
             'create' => Pages\CreateGradeP5Score::route('/create'),
-            'batch'  => Pages\BatchGradeP5Score::route('/batch'),
-            'edit'   => Pages\EditGradeP5Score::route('/{record}/edit'),
+            'batch' => Pages\BatchGradeP5Score::route('/batch'),
+            'edit' => Pages\EditGradeP5Score::route('/{record}/edit'),
         ];
     }
 }

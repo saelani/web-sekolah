@@ -12,7 +12,9 @@ trait HasRoleScope
      */
     protected static function getUserRoles($user): array
     {
-        if (!$user) return [];
+        if (! $user) {
+            return [];
+        }
 
         $roles = [];
 
@@ -24,12 +26,12 @@ trait HasRoleScope
         // 2. Cek relasi BelongsTo / HasOne ($user->role)
         if (is_object($user->role) && isset($user->role->role)) {
             $roles[] = $user->role->role;
-        } elseif (is_string($user->role) && !empty($user->role)) {
+        } elseif (is_string($user->role) && ! empty($user->role)) {
             $roles[] = $user->role;
         }
 
         // 3. Cek kolom role_type
-        if (!empty($user->role_type)) {
+        if (! empty($user->role_type)) {
             $roles[] = $user->role_type;
         }
 
@@ -43,7 +45,7 @@ trait HasRoleScope
     {
         $user = auth()->user();
 
-        if (!$user) {
+        if (! $user) {
             return $query;
         }
 
@@ -73,7 +75,7 @@ trait HasRoleScope
         $query = parent::getEloquentQuery();
         $user = auth()->user();
 
-        if (!$user) {
+        if (! $user) {
             return $query;
         }
 
@@ -89,10 +91,10 @@ trait HasRoleScope
 
         // 2. Jika Guru (Teacher / Class Teacher / Subject Teacher)
         if (array_intersect($roles, ['teacher', 'class_teacher', 'subject_teacher'])) {
-            
+
             // Khusus 'acad_teachers' (Guru hanya bisa lihat profilnya sendiri)
             if ($table === 'acad_teachers') {
-                return $query->where($table . '.user_id', $user->id);
+                return $query->where($table.'.user_id', $user->id);
             }
 
             // Khusus 'acad_subjects' (Mapel): Guru bisa lihat semua mapel
@@ -103,10 +105,10 @@ trait HasRoleScope
             // Khusus 'acad_classes': Tampilkan kelas tempat guru jadi Wali Kelas atau Guru Pengampu Mapel
             if ($table === 'acad_classes' && $user->teacher) {
                 return $query->where(function ($q) use ($user, $table) {
-                    $q->where($table . '.teacher_id', $user->teacher->id)
-                      ->orWhereHas('teacherSubjectClasses', function ($ts) use ($user) {
-                          $ts->where('teacher_id', $user->teacher->id);
-                      });
+                    $q->where($table.'.teacher_id', $user->teacher->id)
+                        ->orWhereHas('teacherSubjectClasses', function ($ts) use ($user) {
+                            $ts->where('teacher_id', $user->teacher->id);
+                        });
                 });
             }
 
@@ -119,22 +121,22 @@ trait HasRoleScope
 
             // Fallback untuk kolom teacher_id / user_id
             if ($user->teacher && Schema::hasColumn($table, 'teacher_id')) {
-                return $query->where($table . '.teacher_id', $user->teacher->id);
+                return $query->where($table.'.teacher_id', $user->teacher->id);
             }
 
             if (Schema::hasColumn($table, 'user_id')) {
-                return $query->where($table . '.user_id', $user->id);
+                return $query->where($table.'.user_id', $user->id);
             }
         }
 
         // 3. Jika Siswa (Student)
         if (in_array('student', $roles) && $user->student) {
             if ($table === 'acad_students') {
-                return $query->where($table . '.id', $user->student->id);
+                return $query->where($table.'.id', $user->student->id);
             }
 
             if (Schema::hasColumn($table, 'student_id')) {
-                return $query->where($table . '.student_id', $user->student->id);
+                return $query->where($table.'.student_id', $user->student->id);
             }
 
             if (Schema::hasColumn($table, 'enrollment_id')) {

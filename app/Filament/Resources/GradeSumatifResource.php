@@ -3,10 +3,9 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\GradeSumatifResource\Pages;
-use App\Models\GradeSumatif;
-use App\Models\Enrollment;
 use App\Models\ClassRoom;
-use App\Models\Subject;
+use App\Models\Enrollment;
+use App\Models\GradeSumatif;
 use App\Models\SumativeScope;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -20,17 +19,20 @@ class GradeSumatifResource extends Resource
     protected static ?string $model = GradeSumatif::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
+
     protected static ?string $navigationGroup = 'Penilaian';
+
     protected static ?string $navigationLabel = 'Nilai Sumatif';
+
     protected static ?int $navigationSort = 2;
 
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->with([
-            'enrollment.student', 
-            'enrollment.class', 
-            'subject', 
-            'sumativeScope'
+            'enrollment.student',
+            'enrollment.class',
+            'subject',
+            'sumativeScope',
         ]);
     }
 
@@ -46,6 +48,7 @@ class GradeSumatifResource extends Resource
                                 Enrollment::with(['student', 'class'])->get()->mapWithKeys(function ($enrollment) {
                                     $studentName = optional($enrollment->student)->name ?? 'Siswa Tanpa Nama';
                                     $className = optional($enrollment->class)->name ?? 'Tanpa Kelas';
+
                                     return [$enrollment->id => "{$studentName} ({$className})"];
                                 })
                             )
@@ -71,10 +74,10 @@ class GradeSumatifResource extends Resource
                         Forms\Components\Select::make('type')
                             ->label('Jenis Sumatif')
                             ->options([
-                                'TP'   => 'Tujuan Pembelajaran (TP)',
-                                'STS'  => 'Sumatif Tengah Semester (STS)',
-                                'SAS'  => 'Sumatif Akhir Semester (SAS)',
-                                'SAT'  => 'Sumatif Akhir Tahun (SAT)',
+                                'TP' => 'Tujuan Pembelajaran (TP)',
+                                'STS' => 'Sumatif Tengah Semester (STS)',
+                                'SAS' => 'Sumatif Akhir Semester (SAS)',
+                                'SAT' => 'Sumatif Akhir Tahun (SAT)',
                             ])
                             ->required(),
 
@@ -145,7 +148,7 @@ class GradeSumatifResource extends Resource
                     ->label('Kelas')
                     ->options(ClassRoom::pluck('name', 'id'))
                     ->query(function (Builder $query, array $data) {
-                        if (!empty($data['value'])) {
+                        if (! empty($data['value'])) {
                             $query->whereHas('enrollment', function ($q) use ($data) {
                                 $q->where('class_id', $data['value']);
                             });
@@ -166,9 +169,9 @@ class GradeSumatifResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListGradeSumatifs::route('/'),
+            'index' => Pages\ListGradeSumatifs::route('/'),
             'create' => Pages\CreateGradeSumatif::route('/create'),
-            'edit'   => Pages\EditGradeSumatif::route('/{record}/edit'),
+            'edit' => Pages\EditGradeSumatif::route('/{record}/edit'),
         ];
     }
 }

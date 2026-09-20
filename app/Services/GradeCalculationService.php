@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\Enrollment;
 use App\Models\GradeFinalScore;
 use App\Models\GradeFormatif;
 use App\Models\GradeSumatif;
-use App\Models\Enrollment;
 use Illuminate\Support\Facades\DB;
 
 class GradeCalculationService
@@ -31,12 +31,12 @@ class GradeCalculationService
                 ->first();
 
             $highestDesc = $highestFormatif && $highestFormatif->learningObjective
-                ? "Menunjukkan penguasaan yang sangat baik dalam " . lcfirst($highestFormatif->learningObjective->description)
-                : "Menunjukkan penguasaan materi yang baik.";
+                ? 'Menunjukkan penguasaan yang sangat baik dalam '.lcfirst($highestFormatif->learningObjective->description)
+                : 'Menunjukkan penguasaan materi yang baik.';
 
             $lowestDesc = $lowestFormatif && $lowestFormatif->learningObjective && $lowestFormatif->score < 70
-                ? "Perlu bimbingan dan pendampingan lebih lanjut dalam " . lcfirst($lowestFormatif->learningObjective->description)
-                : "Menunjukkan peningkatan yang konsisten dalam pembelajaran.";
+                ? 'Perlu bimbingan dan pendampingan lebih lanjut dalam '.lcfirst($lowestFormatif->learningObjective->description)
+                : 'Menunjukkan peningkatan yang konsisten dalam pembelajaran.';
 
             $sumativeSlmAvg = GradeSumatif::where('enrollment_id', $enrollmentId)
                 ->where('subject_id', $subjectId)

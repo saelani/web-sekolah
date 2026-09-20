@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -19,7 +20,7 @@ class HomeController extends Controller
         $posts = Post::with(['category', 'author'])
             ->where('is_published', true)
             ->when($search, function ($query) use ($search) {
-                $query->where('title', 'like', '%' . $search . '%');
+                $query->where('title', 'like', '%'.$search.'%');
             })
             ->latest('published_at')
             ->paginate(6);
@@ -34,7 +35,7 @@ class HomeController extends Controller
                 'posts' => $posts,
                 'facilities' => $facilities,
                 'achievements' => $achievements,
-            ]
+            ],
         ]);
     }
 }

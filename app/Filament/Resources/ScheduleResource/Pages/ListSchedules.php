@@ -5,8 +5,8 @@ namespace App\Filament\Resources\ScheduleResource\Pages;
 use App\Filament\Resources\ScheduleResource;
 use App\Models\ClassRoom;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
 use Filament\Forms;
+use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Facades\Auth;
 
 class ListSchedules extends ListRecords
@@ -30,7 +30,7 @@ class ListSchedules extends ListRecords
                             $userRole = $user->role ?? $user->role_type ?? '';
 
                             // Batasi jika user adalah guru
-                            if (!in_array($userRole, ['admin', 'headmaster', 'super_admin']) && !($user->is_admin ?? false)) {
+                            if (! in_array($userRole, ['admin', 'headmaster', 'super_admin']) && ! ($user->is_admin ?? false)) {
                                 $teacherId = $user->teacher?->id ?? $user->teacher_id;
                                 if ($teacherId) {
                                     $query->where('teacher_id', $teacherId);

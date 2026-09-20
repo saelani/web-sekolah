@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\TeacherResource\Pages;
 use App\Models\Teacher;
 use App\Models\User;
+use App\Traits\HasAdminOrHeadmasterAccess;
 use App\Traits\HasRoleScope;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -13,12 +14,11 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
-use App\Traits\HasAdminOrHeadmasterAccess;
 
 class TeacherResource extends Resource
 {
-    use HasRoleScope;
     use HasAdminOrHeadmasterAccess;
+    use HasRoleScope;
 
     protected static ?string $model = Teacher::class;
 
@@ -130,7 +130,7 @@ class TeacherResource extends Resource
                     ->label('Foto')
                     ->disk('public') // Memastikan membaca dari folder storage/app/public
                     ->circular()
-                    ->defaultImageUrl(fn ($record) => 'https://ui-avatars.com/api/?name=' . urlencode($record->name ?? 'User') . '&color=7F9CF5&background=EBF4FF'),
+                    ->defaultImageUrl(fn ($record) => 'https://ui-avatars.com/api/?name='.urlencode($record->name ?? 'User').'&color=7F9CF5&background=EBF4FF'),
 
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nama Lengkap')
@@ -182,7 +182,6 @@ class TeacherResource extends Resource
                 ]),
             ]);
     }
-
 
     // ... di dalam class TeacherResource ...
 

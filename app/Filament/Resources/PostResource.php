@@ -29,8 +29,11 @@ class PostResource extends Resource
     use HasRoleScope;
 
     protected static ?string $model = Post::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-newspaper';
+
     protected static ?string $navigationGroup = 'Manajemen Web';
+
     protected static ?string $navigationLabel = 'Berita & Artikel';
 
     public static function form(Form $form): Form
@@ -57,7 +60,7 @@ class PostResource extends Resource
                             ->required(),
 
                         // Menyiapkan user_id secara otomatis dari user login
-                       Hidden::make('user_id')
+                        Hidden::make('user_id')
                             ->default(fn () => auth()->id())
                             ->required(),
 

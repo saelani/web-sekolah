@@ -40,7 +40,7 @@ class StudentAttendanceResource extends Resource
                                 $query = ClassRoom::query();
                                 $userRole = $user->role ?? $user->role_type ?? '';
 
-                                if (!in_array($userRole, ['admin', 'headmaster', 'super_admin']) && !($user->is_admin ?? false)) {
+                                if (! in_array($userRole, ['admin', 'headmaster', 'super_admin']) && ! ($user->is_admin ?? false)) {
                                     $teacherId = $user->teacher?->id ?? $user->teacher_id;
                                     if ($teacherId) {
                                         $query->where('teacher_id', $teacherId);
@@ -60,10 +60,9 @@ class StudentAttendanceResource extends Resource
                         // 2. Pilih Siswa (Difilter berdasarkan class_id yang dipilih)
                         Forms\Components\Select::make('student_id')
                             ->label('Siswa')
-                            ->options(fn (Forms\Get $get) => 
-                                Student::query()
-                                    ->when($get('class_id'), fn ($q, $classId) => $q->where('class_id', $classId))
-                                    ->pluck('name', 'id')
+                            ->options(fn (Forms\Get $get) => Student::query()
+                                ->when($get('class_id'), fn ($q, $classId) => $q->where('class_id', $classId))
+                                ->pluck('name', 'id')
                             )
                             ->searchable()
                             ->preload()
@@ -79,8 +78,8 @@ class StudentAttendanceResource extends Resource
                             ->options([
                                 'Hadir' => 'Hadir',
                                 'Sakit' => 'Sakit',
-                                'Izin'  => 'Izin',
-                                'Alpa'  => 'Alpa (Tanpa Keterangan)',
+                                'Izin' => 'Izin',
+                                'Alpa' => 'Alpa (Tanpa Keterangan)',
                             ])
                             ->default('Hadir')
                             ->required(),
@@ -117,9 +116,9 @@ class StudentAttendanceResource extends Resource
                     ->color(fn (string $state): string => match ($state) {
                         'Hadir', 'H' => 'success',
                         'Sakit', 'S' => 'warning',
-                        'Izin', 'I'  => 'info',
-                        'Alpa', 'A'  => 'danger',
-                        default      => 'gray',
+                        'Izin', 'I' => 'info',
+                        'Alpa', 'A' => 'danger',
+                        default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'H' => 'Hadir',
@@ -143,12 +142,12 @@ class StudentAttendanceResource extends Resource
                     ->options([
                         'Hadir' => 'Hadir',
                         'Sakit' => 'Sakit',
-                        'Izin'  => 'Izin',
-                        'Alpa'  => 'Alpa',
-                        'H'     => 'Hadir (H)',
-                        'S'     => 'Sakit (S)',
-                        'I'     => 'Izin (I)',
-                        'A'     => 'Alpa (A)',
+                        'Izin' => 'Izin',
+                        'Alpa' => 'Alpa',
+                        'H' => 'Hadir (H)',
+                        'S' => 'Sakit (S)',
+                        'I' => 'Izin (I)',
+                        'A' => 'Alpa (A)',
                     ]),
             ])
             ->actions([
@@ -178,10 +177,10 @@ class StudentAttendanceResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'            => Pages\ListStudentAttendances::route('/'),
-            'create'           => Pages\CreateStudentAttendance::route('/create'),
+            'index' => Pages\ListStudentAttendances::route('/'),
+            'create' => Pages\CreateStudentAttendance::route('/create'),
             'batch-attendance' => Pages\BatchStudentAttendance::route('/batch'),
-            'edit'             => Pages\EditStudentAttendance::route('/{record}/edit'),
+            'edit' => Pages\EditStudentAttendance::route('/{record}/edit'),
         ];
     }
 }

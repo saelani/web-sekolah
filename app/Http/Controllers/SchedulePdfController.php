@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\ClassRoom;
 use App\Models\Schedule;
-use App\Models\Teacher;
 use App\Models\SchoolProfile;
+use App\Models\Teacher;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -50,14 +50,14 @@ class SchedulePdfController extends Controller
         $titiMangsa = Carbon::now()->translatedFormat('d F Y');
 
         $pdf = Pdf::loadView('pdf.laporan-jadwal-pelajaran', [
-            'class'       => $class,
-            'schedules'   => $schedules,
+            'class' => $class,
+            'schedules' => $schedules,
             'masterTimes' => $masterTimes,
-            'daysOrder'   => $daysOrder,
-            'school'      => $school,
-            'headmaster'  => $headmaster,
-            'teacher'     => $class->homeroomTeacher,
-            'titiMangsa'  => $titiMangsa,
+            'daysOrder' => $daysOrder,
+            'school' => $school,
+            'headmaster' => $headmaster,
+            'teacher' => $class->homeroomTeacher,
+            'titiMangsa' => $titiMangsa,
         ])->setPaper('a4', 'portrait');
 
         return $pdf->stream("Jadwal_Pelajaran_Detail_{$class->name}.pdf");

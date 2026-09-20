@@ -15,7 +15,7 @@ class PostResource extends JsonResource
             'slug' => $this->slug,
             'excerpt' => $this->excerpt,
             'content' => $this->content,
-            'thumbnail_url' => $this->thumbnail_path ? asset('storage/' . $this->thumbnail_path) : null,
+            'thumbnail_url' => $this->thumbnail_path ? asset('storage/'.$this->thumbnail_path) : null,
             'category_name' => $this->category?->name,
             'author_name' => $this->author?->name,
             'published_at' => $this->published_at?->format('d M Y'),

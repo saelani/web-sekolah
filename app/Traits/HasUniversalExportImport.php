@@ -39,7 +39,7 @@ trait HasUniversalExportImport
             ])
             ->action(function (array $data) use ($importerClass) {
                 try {
-                    Excel::import(new $importerClass, storage_path('app/public/' . $data['file']));
+                    Excel::import(new $importerClass, storage_path('app/public/'.$data['file']));
 
                     Notification::make()
                         ->title('Impor Berhasil')
@@ -49,7 +49,7 @@ trait HasUniversalExportImport
                 } catch (Throwable $e) {
                     Notification::make()
                         ->title('Gagal Mengimpor Data')
-                        ->body('Terjadi kesalahan: ' . $e->getMessage())
+                        ->body('Terjadi kesalahan: '.$e->getMessage())
                         ->danger()
                         ->persistent()
                         ->send();
@@ -72,7 +72,7 @@ trait HasUniversalExportImport
                 } catch (Throwable $e) {
                     Notification::make()
                         ->title('Gagal Mengekspor Data')
-                        ->body('Terjadi kesalahan: ' . $e->getMessage())
+                        ->body('Terjadi kesalahan: '.$e->getMessage())
                         ->danger()
                         ->send();
                 }

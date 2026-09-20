@@ -3,37 +3,39 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\GradeFormatifResource\Pages;
+use App\Models\Enrollment;
 use App\Models\GradeFormatif;
 use App\Models\LearningObjective;
-use App\Models\SumativeScope; 
-use App\Models\Enrollment;
 use App\Models\Subject;
+use App\Models\SumativeScope;
 use App\Services\GradeCalculationService;
 use App\Traits\HasRoleScope;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\IconColumn;
-use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\DeleteAction;
-use Illuminate\Database\Eloquent\Builder;
+use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
+use Illuminate\Support\Str;
 
 class GradeFormatifResource extends Resource
 {
     use HasRoleScope;
 
     protected static ?string $model = GradeFormatif::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-pencil-square';
+
     protected static ?string $navigationGroup = 'Asesmen Intrakurikuler';
+
     protected static ?string $navigationLabel = 'Nilai Formatif';
 
     public static function form(Form $form): Form
@@ -50,12 +52,13 @@ class GradeFormatifResource extends Resource
                                 $query = Subject::query();
                                 $userRole = $user->role ?? $user->role_type ?? '';
 
-                                if (!in_array($userRole, ['admin', 'headmaster', 'super_admin']) && !$user->is_admin) {
+                                if (! in_array($userRole, ['admin', 'headmaster', 'super_admin']) && ! $user->is_admin) {
                                     $teacherId = $user->teacher ? $user->teacher->id : $user->teacher_id;
                                     $query->whereHas('teacherSubjectClasses', function ($q) use ($teacherId) {
                                         $q->where('teacher_id', $teacherId);
                                     });
                                 }
+
                                 return $query->pluck('name', 'id');
                             })
                             ->live()
@@ -71,7 +74,7 @@ class GradeFormatifResource extends Resource
                             ->label('Acuan Penilaian')
                             ->options([
                                 'chapter' => 'Penilaian Bab (Lingkup Materi)',
-                                'tp'      => 'Penilaian Tujuan Pembelajaran (TP)',
+                                'tp' => 'Penilaian Tujuan Pembelajaran (TP)',
                             ])
                             ->default('tp')
                             ->live()
@@ -87,7 +90,7 @@ class GradeFormatifResource extends Resource
                             ->options(function (Get $get, ?GradeFormatif $record) {
                                 $subjectId = $get('subject_id') ?? $record?->subject_id;
 
-                                if (!$subjectId) {
+                                if (! $subjectId) {
                                     return SumativeScope::pluck('name', 'id');
                                 }
 
@@ -105,20 +108,20 @@ class GradeFormatifResource extends Resource
                             ->options(function (Get $get, ?GradeFormatif $record) {
                                 $subjectId = $get('subject_id') ?? $record?->learningObjective?->subject_id;
 
-                                if (!$subjectId) {
+                                if (! $subjectId) {
                                     return [];
                                 }
 
                                 return LearningObjective::where('subject_id', $subjectId)
                                     ->get()
                                     ->mapWithKeys(fn ($tp) => [
-                                        $tp->id => "[{$tp->code}] " . \Illuminate\Support\Str::limit($tp->description, 50)
+                                        $tp->id => "[{$tp->code}] ".Str::limit($tp->description, 50),
                                     ]);
                             })
                             ->searchable()
                             ->visible(fn (Get $get) => $get('assessment_type') === 'tp')
                             ->required(fn (Get $get) => $get('assessment_type') === 'tp')
-                            ->disabled(fn (Get $get, ?GradeFormatif $record) => !$get('subject_id') && !$record),
+                            ->disabled(fn (Get $get, ?GradeFormatif $record) => ! $get('subject_id') && ! $record),
 
                         // 5. Select Siswa (Model Enrollment)
                         Select::make('enrollment_id')
@@ -129,6 +132,7 @@ class GradeFormatifResource extends Resource
                                     ->mapWithKeys(function ($enrollment) {
                                         $studentName = optional($enrollment->student)->name ?? 'Siswa Tanpa Nama';
                                         $className = optional($enrollment->class)->name ?? '-';
+
                                         return [$enrollment->id => "{$studentName} ({$className})"];
                                     });
                             })
@@ -144,7 +148,7 @@ class GradeFormatifResource extends Resource
                             ->required()
                             ->label('Nilai Formatif (0-100)')
                             ->live(onBlur: true)
-                            ->afterStateUpdated(fn ($state, Set $set) => $set('is_achieved', (float)$state >= 70)),
+                            ->afterStateUpdated(fn ($state, Set $set) => $set('is_achieved', (float) $state >= 70)),
 
                         Toggle::make('is_achieved')
                             ->label('Tuntas / Achieved')

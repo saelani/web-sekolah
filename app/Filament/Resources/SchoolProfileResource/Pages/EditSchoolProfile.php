@@ -30,6 +30,4 @@ class EditSchoolProfile extends EditRecord
             ->title('Perubahan Disimpan')
             ->body('Profil sekolah berhasil diperbarui.');
     }
-
-    
 }

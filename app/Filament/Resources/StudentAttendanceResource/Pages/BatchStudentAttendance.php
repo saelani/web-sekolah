@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Filament\Resources\StudentAttendanceResource\Pages;
 
 use App\Filament\Resources\StudentAttendanceResource;
@@ -54,7 +55,7 @@ class BatchStudentAttendance extends Page implements HasForms
                                 $query = ClassRoom::query();
                                 $userRole = $user->role ?? $user->role_type ?? '';
 
-                                if (!in_array($userRole, ['admin', 'headmaster', 'super_admin']) && !($user->is_admin ?? false)) {
+                                if (! in_array($userRole, ['admin', 'headmaster', 'super_admin']) && ! ($user->is_admin ?? false)) {
                                     $teacherId = $user->teacher?->id ?? $user->teacher_id;
                                     if ($teacherId) {
                                         $query->where('teacher_id', $teacherId);
@@ -85,7 +86,7 @@ class BatchStudentAttendance extends Page implements HasForms
                             ->collapsible()
                             ->grid([
                                 'default' => 1,
-                                'md'      => 2,
+                                'md' => 2,
                             ])
                             ->schema([
                                 Hidden::make('student_id'),
@@ -95,8 +96,8 @@ class BatchStudentAttendance extends Page implements HasForms
                                     ->options([
                                         'Hadir' => 'Hadir (Tidak Disimpan)',
                                         'Sakit' => 'Sakit',
-                                        'Izin'  => 'Izin',
-                                        'Alpa'  => 'Alpa (Tanpa Keterangan)',
+                                        'Izin' => 'Izin',
+                                        'Alpa' => 'Alpa (Tanpa Keterangan)',
                                     ])
                                     ->default('Hadir')
                                     ->required()
@@ -124,8 +125,9 @@ class BatchStudentAttendance extends Page implements HasForms
         $classId = $get('class_id');
         $date = $get('date');
 
-        if (!$classId || !$date) {
+        if (! $classId || ! $date) {
             $set('students', []);
+
             return;
         }
 
@@ -140,10 +142,10 @@ class BatchStudentAttendance extends Page implements HasForms
                 ->first();
 
             return [
-                'student_id'   => $student->id,
+                'student_id' => $student->id,
                 'student_name' => $student->name,
-                'status'       => $existingAttendance?->status ?? 'Hadir',
-                'notes'        => $existingAttendance?->notes ?? null,
+                'status' => $existingAttendance?->status ?? 'Hadir',
+                'notes' => $existingAttendance?->notes ?? null,
             ];
         })->toArray();
 
@@ -159,12 +161,13 @@ class BatchStudentAttendance extends Page implements HasForms
         $students = $formData['students'] ?? [];
         $userId = Auth::id();
 
-        if (!$classId || empty($students)) {
+        if (! $classId || empty($students)) {
             Notification::make()
                 ->title('Gagal Menyimpan')
                 ->body('Pilih kelas dan siswa terlebih dahulu.')
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -191,7 +194,7 @@ class BatchStudentAttendance extends Page implements HasForms
                 // Siapkan data payload
                 $payload = [
                     'status' => $status,
-                    'notes'  => $student['notes'] ?? null,
+                    'notes' => $student['notes'] ?? null,
                 ];
 
                 if ($hasUserIdColumn) {
@@ -201,9 +204,9 @@ class BatchStudentAttendance extends Page implements HasForms
                 // Simpan atau update data Sakit / Izin / Alpa
                 StudentAttendance::updateOrCreate(
                     [
-                        'class_id'   => $classId,
+                        'class_id' => $classId,
                         'student_id' => $student['student_id'],
-                        'date'       => $date,
+                        'date' => $date,
                     ],
                     $payload
                 );

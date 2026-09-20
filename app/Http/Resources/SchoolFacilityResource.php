@@ -18,7 +18,7 @@ class SchoolFacilityResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'description' => $this->description,
-            'image_url' => $this->image_path ? asset('storage/' . $this->image_path) : null,
+            'image_url' => $this->image_path ? asset('storage/'.$this->image_path) : null,
             'created_at' => $this->created_at?->format('d M Y'),
         ];
     }

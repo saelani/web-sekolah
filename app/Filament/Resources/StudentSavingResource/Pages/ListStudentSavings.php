@@ -37,7 +37,7 @@ class ListStudentSavings extends ListRecords
                             $userRole = $user->role ?? $user->role_type ?? '';
 
                             // Filter kelas berdasarkan role user (Guru hanya bisa akses kelasnya sendiri)
-                            if (!in_array($userRole, ['admin', 'headmaster', 'super_admin']) && !($user->is_admin ?? false)) {
+                            if (! in_array($userRole, ['admin', 'headmaster', 'super_admin']) && ! ($user->is_admin ?? false)) {
                                 $teacherId = $user->teacher?->id ?? $user->teacher_id;
                                 if ($teacherId) {
                                     $query->where('teacher_id', $teacherId);
@@ -65,9 +65,9 @@ class ListStudentSavings extends ListRecords
                 ->modalSubmitActionLabel('Buka PDF Laporan')
                 ->action(function (array $data) {
                     $url = route('student-saving.pdf', [
-                        'class_id'   => $data['class_id'],
+                        'class_id' => $data['class_id'],
                         'start_date' => $data['start_date'],
-                        'end_date'   => $data['end_date'],
+                        'end_date' => $data['end_date'],
                     ]);
 
                     // Peluncur link JS sintetis untuk membuka tab baru secara langsung tanpa terblokir popup blocker

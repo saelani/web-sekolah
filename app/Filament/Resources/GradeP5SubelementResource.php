@@ -13,9 +13,13 @@ use Filament\Tables\Table;
 class GradeP5SubelementResource extends Resource
 {
     protected static ?string $model = P5Subelement::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-list-bullet';
+
     protected static ?string $navigationGroup = 'Penilaian P5';
+
     protected static ?string $navigationLabel = 'Sub-elemen P5';
+
     protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
@@ -86,9 +90,9 @@ class GradeP5SubelementResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListGradeP5Subelements::route('/'),
+            'index' => Pages\ListGradeP5Subelements::route('/'),
             'create' => Pages\CreateGradeP5Subelement::route('/create'),
-            'edit'   => Pages\EditGradeP5Subelement::route('/{record}/edit'),
+            'edit' => Pages\EditGradeP5Subelement::route('/{record}/edit'),
         ];
     }
 }

@@ -13,9 +13,13 @@ use Filament\Tables\Table;
 class GradeP5ProjectResource extends Resource
 {
     protected static ?string $model = P5Project::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
+
     protected static ?string $navigationGroup = 'Penilaian P5';
+
     protected static ?string $navigationLabel = 'Projek P5';
+
     protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
@@ -87,9 +91,9 @@ class GradeP5ProjectResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListGradeP5Projects::route('/'),
+            'index' => Pages\ListGradeP5Projects::route('/'),
             'create' => Pages\CreateGradeP5Project::route('/create'),
-            'edit'   => Pages\EditGradeP5Project::route('/{record}/edit'),
+            'edit' => Pages\EditGradeP5Project::route('/{record}/edit'),
         ];
     }
 }

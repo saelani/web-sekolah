@@ -5,16 +5,16 @@ namespace App\Imports;
 use App\Models\Student;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\ToModel;
-use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithCustomCsvSettings;
+use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 
-class StudentsImport implements ToModel, WithHeadingRow, WithCustomCsvSettings
+class StudentsImport implements ToModel, WithCustomCsvSettings, WithHeadingRow
 {
     public function getCsvSettings(): array
     {
         return [
-            'delimiter' => ';'
+            'delimiter' => ';',
         ];
     }
 
@@ -22,7 +22,7 @@ class StudentsImport implements ToModel, WithHeadingRow, WithCustomCsvSettings
     {
         $dob = null;
 
-        if (!empty($row['dob'])) {
+        if (! empty($row['dob'])) {
             try {
                 // 1. Jika tanggal berupa Serial Number dari Excel (misal: 38580)
                 if (is_numeric($row['dob'])) {
@@ -30,7 +30,7 @@ class StudentsImport implements ToModel, WithHeadingRow, WithCustomCsvSettings
                 } else {
                     // 2. Mengubah pemisah "-" atau "." menjadi "/" agar standar
                     $cleanDob = str_replace(['-', '.'], '/', trim($row['dob']));
-                    
+
                     // 3. Gunakan Carbon::parse untuk membaca berbagai format tanggal otomatis
                     $dob = Carbon::parse($cleanDob)->format('Y-m-d');
                 }
@@ -41,22 +41,22 @@ class StudentsImport implements ToModel, WithHeadingRow, WithCustomCsvSettings
         }
 
         // Jika dob masih kosong/null setelah diproses, lemparkan error sebelum masuk database
-        if (!$dob) {
+        if (! $dob) {
             throw new \Exception("Tanggal lahir (dob) untuk NISN {$row['nisn']} wajib diisi dan tidak boleh kosong.");
         }
 
         return Student::updateOrCreate(
             ['nisn' => $row['nisn']],
             [
-                'user_id'     => auth()->id(), // Mengaitkan dengan ID user login
-                'nis'         => $row['nis'] ?? null,
-                'name'        => $row['name'],
-                'gender'      => $row['gender'] ?? null,
-                'pob'         => $row['pob'] ?? null,
-                'dob'         => $dob,
-                'address'     => $row['address'] ?? null,
+                'user_id' => auth()->id(), // Mengaitkan dengan ID user login
+                'nis' => $row['nis'] ?? null,
+                'name' => $row['name'],
+                'gender' => $row['gender'] ?? null,
+                'pob' => $row['pob'] ?? null,
+                'dob' => $dob,
+                'address' => $row['address'] ?? null,
                 'parent_name' => $row['parent_name'] ?? null,
-                'class_id'    => $row['class_id'] ?? null,
+                'class_id' => $row['class_id'] ?? null,
             ]
         );
     }

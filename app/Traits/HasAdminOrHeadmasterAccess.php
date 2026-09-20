@@ -2,6 +2,7 @@
 
 namespace App\Traits;
 
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
 trait HasAdminOrHeadmasterAccess
@@ -11,7 +12,7 @@ trait HasAdminOrHeadmasterAccess
      */
     protected static function hasAdminOrHeadmasterAccess(): bool
     {
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = Auth::user();
 
         return $user && $user->hasRole('admin', 'headmaster', 'super_admin');

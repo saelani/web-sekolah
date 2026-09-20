@@ -1,24 +1,31 @@
 <?php
+
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\SubjectResource\Pages;
 use App\Models\Subject;
+use App\Traits\HasAdminOrHeadmasterAccess;
+use App\Traits\HasRoleScope;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use App\Traits\HasRoleScope;
-use App\Traits\HasAdminOrHeadmasterAccess;
 
 class SubjectResource extends Resource
 {
-    use HasRoleScope; // 2. Gunakan Trait di sini
+    // 2. Gunakan Trait di sini
     use HasAdminOrHeadmasterAccess;
+    use HasRoleScope;
+
     protected static ?string $model = Subject::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-book-open';
+
     protected static ?string $navigationGroup = 'Data Master';
+
     protected static ?string $navigationLabel = 'Mata Pelajaran';
+
     protected static ?int $navigationSort = 1;
 
     // Otorisasi Hak Aksi (Create, Edit, Delete) khusus Admin
@@ -111,9 +118,9 @@ class SubjectResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListSubjects::route('/'),
+            'index' => Pages\ListSubjects::route('/'),
             'create' => Pages\CreateSubject::route('/create'),
-            'edit'   => Pages\EditSubject::route('/{record}/edit'),
+            'edit' => Pages\EditSubject::route('/{record}/edit'),
         ];
     }
 }

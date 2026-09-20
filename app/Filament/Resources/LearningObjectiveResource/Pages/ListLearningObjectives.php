@@ -76,9 +76,13 @@ class ListLearningObjectives extends ListRecords
                         ->live()
                         ->afterStateUpdated(function (Forms\Set $set, $state) {
                             if ($state) {
-                                if (in_array($state, [1, 2])) $set('phase', 'A');
-                                elseif (in_array($state, [3, 4])) $set('phase', 'B');
-                                elseif (in_array($state, [5, 6])) $set('phase', 'C');
+                                if (in_array($state, [1, 2])) {
+                                    $set('phase', 'A');
+                                } elseif (in_array($state, [3, 4])) {
+                                    $set('phase', 'B');
+                                } elseif (in_array($state, [5, 6])) {
+                                    $set('phase', 'C');
+                                }
                             }
                         })
                         ->required(),
@@ -142,7 +146,7 @@ class ListLearningObjectives extends ListRecords
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('warning')
                 ->action(function () {
-                    return Excel::download(new LearningObjectivesExport, 'Tujuan_Pembelajaran_' . date('Y-m-d') . '.xlsx');
+                    return Excel::download(new LearningObjectivesExport, 'Tujuan_Pembelajaran_'.date('Y-m-d').'.xlsx');
                 }),
         ];
     }

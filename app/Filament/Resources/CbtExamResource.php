@@ -164,7 +164,7 @@ class CbtExamResource extends Resource
                                             ->default(1.0)
                                             ->required(),
 
-                                        Forms\Components\FileUpload::make('media_path')
+                                        FileUpload::make('media_path')
                                             ->label('Gambar/Media Soal (Opsional)')
                                             ->image()
                                             ->directory('cbt-questions')
@@ -174,7 +174,7 @@ class CbtExamResource extends Resource
                                 Forms\Components\RichEditor::make('question_text')
                                     ->label('Teks Soal')
                                     ->toolbarButtons([
-                                        'bold', 'italic', 'underline', 'bulletList', 'orderedList', 'codeBlock'
+                                        'bold', 'italic', 'underline', 'bulletList', 'orderedList', 'codeBlock',
                                     ])
                                     ->required()
                                     ->columnSpanFull(),
@@ -189,7 +189,7 @@ class CbtExamResource extends Resource
                                             ->label('Teks Jawaban')
                                             ->requiredWithout('media_path'),
 
-                                        Forms\Components\FileUpload::make('media_path')
+                                        FileUpload::make('media_path')
                                             ->label('Gambar Opsi')
                                             ->image()
                                             ->directory('cbt-options'),
@@ -217,7 +217,7 @@ class CbtExamResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
-                    ->description(fn (CbtExam $record) => "Mata Pelajaran: " . ($record->subject?->name ?? '-')),
+                    ->description(fn (CbtExam $record) => 'Mata Pelajaran: '.($record->subject?->name ?? '-')),
 
                 Tables\Columns\TextColumn::make('teacher.name')
                     ->label('Guru')
@@ -250,7 +250,7 @@ class CbtExamResource extends Resource
                     ->label('Pelaksanaan')
                     ->dateTime('d M Y, H:i')
                     ->sortable()
-                    ->description(fn (CbtExam $record) => "s/d " . $record->end_time?->format('d M Y, H:i')),
+                    ->description(fn (CbtExam $record) => 's/d '.$record->end_time?->format('d M Y, H:i')),
             ])
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_active')
@@ -308,7 +308,7 @@ class CbtExamResource extends Resource
                                     ->label('Tujuan Pembelajaran (TP)')
                                     ->options(function (Forms\Get $get) {
                                         $subjectId = $get('subject_id');
-                                        if (!$subjectId) {
+                                        if (! $subjectId) {
                                             return [];
                                         }
 
@@ -349,7 +349,7 @@ class CbtExamResource extends Resource
                                             'style' => 'background-color: #2563eb !important; color: #ffffff !important; font-weight: bold;',
                                         ])
                                         ->action(function (Forms\Get $get, Forms\Set $set) {
-                                            $jenis = match($get('assessment_type')) {
+                                            $jenis = match ($get('assessment_type')) {
                                                 'formatif' => 'Asesmen Formatif Harian',
                                                 'sumatif_tp' => 'Sumatif Lingkup Materi',
                                                 default => 'Sumatif Akhir Semester',
@@ -382,7 +382,7 @@ class CbtExamResource extends Resource
                                             $prompt .= "    \"opsi_d\": \"Jawaban D\",\n";
                                             $prompt .= "    \"kunci_jawaban\": \"A\"\n";
                                             $prompt .= "  }\n";
-                                            $prompt .= "]";
+                                            $prompt .= ']';
 
                                             $set('generated_prompt', $prompt);
                                         }),
@@ -443,13 +443,14 @@ class CbtExamResource extends Resource
                                                     ->body('Tempelkan teks JSON dari AI terlebih dahulu.')
                                                     ->warning()
                                                     ->send();
+
                                                 return;
                                             }
 
                                             try {
                                                 $questionsData = json_decode($jsonText, true);
 
-                                                if (!is_array($questionsData)) {
+                                                if (! is_array($questionsData)) {
                                                     throw new \Exception('Format JSON tidak valid.');
                                                 }
 
@@ -471,7 +472,7 @@ class CbtExamResource extends Resource
                                                         ];
 
                                                         foreach ($optionsMap as $key => $text) {
-                                                            if (!empty($text)) {
+                                                            if (! empty($text)) {
                                                                 $question->options()->create([
                                                                     'option_text' => $text,
                                                                     'is_correct' => ($key === $kunci),
@@ -483,7 +484,7 @@ class CbtExamResource extends Resource
 
                                                 Notification::make()
                                                     ->title('Soal AI Berhasil Ditambahkan!')
-                                                    ->body(count($questionsData) . " soal baru telah dimasukkan ke ujian: {$record->title}")
+                                                    ->body(count($questionsData)." soal baru telah dimasukkan ke ujian: {$record->title}")
                                                     ->success()
                                                     ->send();
 
@@ -491,7 +492,7 @@ class CbtExamResource extends Resource
                                             } catch (\Throwable $th) {
                                                 Notification::make()
                                                     ->title('Gagal Memproses Soal AI')
-                                                    ->body('Terjadi kesalahan: ' . $th->getMessage())
+                                                    ->body('Terjadi kesalahan: '.$th->getMessage())
                                                     ->danger()
                                                     ->send();
                                             }
@@ -551,7 +552,7 @@ class CbtExamResource extends Resource
                         } catch (\Throwable $th) {
                             Notification::make()
                                 ->title('Gagal Impor Soal')
-                                ->body('Terjadi kesalahan: ' . $th->getMessage())
+                                ->body('Terjadi kesalahan: '.$th->getMessage())
                                 ->danger()
                                 ->send();
                         }

@@ -17,11 +17,11 @@ class GradeExtracurricularsImport implements ToModel, WithHeadingRow
 
         return ExtracurricularScore::updateOrCreate(
             [
-                'enrollment_id'      => $row['enrollment_id'],
+                'enrollment_id' => $row['enrollment_id'],
                 'extracurricular_id' => $row['extracurricular_id'],
             ],
             [
-                'grade'       => $row['grade'] ?? '-',
+                'grade' => $row['grade'] ?? '-',
                 'description' => $row['description'] ?? null,
             ]
         );

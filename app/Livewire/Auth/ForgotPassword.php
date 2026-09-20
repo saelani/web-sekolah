@@ -2,18 +2,21 @@
 
 namespace App\Livewire\Auth;
 
-use Livewire\Component;
-use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Livewire\Component;
 
 class ForgotPassword extends Component
 {
     public string $email = '';
+
     public string $token = '';
+
     public string $password = '';
+
     public string $password_confirmation = '';
+
     public bool $isTokenValid = false;
 
     // Menangkap token dari URL jika pengguna mengklik link dari email
@@ -38,7 +41,7 @@ class ForgotPassword extends Component
 
         // Logika pengiriman token / tautan pemulihan sandi
         // (Anda bisa menggunakan fitur bawaan Password::broker()->sendResetLink(...) atau kustom token)
-        
+
         session()->flash('status', 'Tautan pemulihan kata sandi telah dikirim ke email Anda.');
     }
 
@@ -61,6 +64,7 @@ class ForgotPassword extends Component
             $user->save();
 
             session()->flash('status', 'Kata sandi berhasil diubah. Silakan masuk dengan kata sandi baru.');
+
             return redirect()->route('login');
         }
 

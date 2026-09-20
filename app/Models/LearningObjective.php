@@ -13,12 +13,12 @@ class LearningObjective extends Model
     protected $table = 'grade_learning_objectives';
 
     protected $fillable = [
-        'subject_id', 
-        'sumative_scope_id', 
-        'phase', 
-        'level', 
-        'semester', 
-        'code', 
+        'subject_id',
+        'sumative_scope_id',
+        'phase',
+        'level',
+        'semester',
+        'code',
         'description',
         'chapter_number', // Sementara tetap diizinkan diisi otomatis
         'chapter_name',   // Sementara tetap diizinkan diisi otomatis
@@ -34,7 +34,7 @@ class LearningObjective extends Model
                     $model->subject_id = $scope->subject_id;
                     $model->phase = $scope->phase;
                     $model->semester = $scope->semester;
-                    
+
                     // Otomatis isi chapter_name dari nama SumativeScope (sementara)
                     if (empty($model->chapter_name)) {
                         $model->chapter_name = $scope->name;
@@ -50,7 +50,7 @@ class LearningObjective extends Model
             // 3. Generate otomatis kode TP (TP-1, TP-2, dst)
             if (empty($model->code) && $model->sumative_scope_id) {
                 $count = self::where('sumative_scope_id', $model->sumative_scope_id)->count();
-                $model->code = 'TP-' . ($count + 1);
+                $model->code = 'TP-'.($count + 1);
             }
         });
     }
@@ -68,6 +68,7 @@ class LearningObjective extends Model
     public function getFullTitleAttribute(): string
     {
         $scopeName = $this->sumativeScope ? "[{$this->sumativeScope->name}] " : '';
+
         return "{$scopeName}[{$this->code}] {$this->description}";
     }
 }

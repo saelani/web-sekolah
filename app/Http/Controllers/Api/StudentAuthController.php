@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use App\Models\StudentAttendance;
 use App\Models\StudentSaving;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -14,13 +14,13 @@ class StudentAuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email'    => 'required|email',
+            'email' => 'required|email',
             'password' => 'required',
         ]);
 
         $user = User::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Email atau Password salah',
@@ -60,19 +60,19 @@ class StudentAuthController extends Controller
         // Format photo_url
         $studentData = $student ? $student->toArray() : null;
         if ($studentData) {
-            $studentData['photo_url'] = !empty($studentData['photo_path']) 
-                ? "http://192.168.100.234:8004/storage/" . $studentData['photo_path'] 
+            $studentData['photo_url'] = ! empty($studentData['photo_path'])
+                ? 'http://192.168.100.234:8004/storage/'.$studentData['photo_path']
                 : null;
-            
+
             $studentData['attendances'] = $attendances;
-            $studentData['savings']     = $savings;
+            $studentData['savings'] = $savings;
         }
 
         $response = [
             'success' => true,
             'message' => $message,
-            'data'    => [
-                'user'    => $user,
+            'data' => [
+                'user' => $user,
                 'student' => $studentData,
             ],
         ];

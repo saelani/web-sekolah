@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Models\User;
 use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -15,7 +16,7 @@ abstract class BaseResource extends Resource
      */
     public static function canViewAny(): bool
     {
-        /** @var \App\Models\User|null $user */
+        /** @var User|null $user */
         $user = auth()->user();
 
         return $user && in_array($user->role, ['admin', 'headmaster', 'teacher']);
@@ -28,7 +29,7 @@ abstract class BaseResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
-        /** @var \App\Models\User|null $user */
+        /** @var User|null $user */
         $user = auth()->user();
 
         if ($user && $user->role === 'teacher') {
@@ -37,11 +38,11 @@ abstract class BaseResource extends Resource
 
             // Saring otomatis jika tabel memiliki kolom teacher_id atau user_id
             if (Schema::hasColumn($table, 'teacher_id')) {
-                return $query->where($table . '.teacher_id', $user->id);
+                return $query->where($table.'.teacher_id', $user->id);
             }
 
             if (Schema::hasColumn($table, 'user_id')) {
-                return $query->where($table . '.user_id', $user->id);
+                return $query->where($table.'.user_id', $user->id);
             }
         }
 
@@ -54,7 +55,7 @@ abstract class BaseResource extends Resource
      */
     public static function canCreate(): bool
     {
-        /** @var \App\Models\User|null $user */
+        /** @var User|null $user */
         $user = auth()->user();
 
         // Hanya Admin dan Teacher yang boleh menambah data
@@ -66,16 +67,17 @@ abstract class BaseResource extends Resource
      */
     public static function canEdit(Model $record): bool
     {
-        /** @var \App\Models\User|null $user */
+        /** @var User|null $user */
         $user = auth()->user();
 
-        if (!$user) {
+        if (! $user) {
             return false;
         }
 
         // Teacher hanya boleh mengedit data miliknya sendiri
         if ($user->role === 'teacher') {
             $teacherId = $record->teacher_id ?? $record->user_id ?? null;
+
             return $teacherId === $user->id;
         }
 
@@ -96,7 +98,7 @@ abstract class BaseResource extends Resource
      */
     public static function canDelete(Model $record): bool
     {
-        /** @var \App\Models\User|null $user */
+        /** @var User|null $user */
         $user = auth()->user();
 
         // Hanya Admin yang diberi wewenang menghapus data

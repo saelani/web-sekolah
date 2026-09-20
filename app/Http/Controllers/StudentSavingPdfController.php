@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\ClassRoom;
+use App\Models\SchoolProfile;
 use App\Models\Student;
 use App\Models\Teacher;
-use App\Models\SchoolProfile;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
@@ -14,9 +14,9 @@ class StudentSavingPdfController extends Controller
     public function __invoke(Request $request)
     {
         $request->validate([
-            'class_id'   => 'required|exists:acad_classes,id',
+            'class_id' => 'required|exists:acad_classes,id',
             'start_date' => 'required|date',
-            'end_date'   => 'required|date',
+            'end_date' => 'required|date',
         ]);
 
         $class = ClassRoom::with('homeroomTeacher')->findOrFail($request->class_id);
@@ -39,7 +39,7 @@ class StudentSavingPdfController extends Controller
         $summary = $students->map(function ($student) use ($request) {
             // 1. Saldo s/d Bulan Lalu (sebelum start_date)
             $prevSavings = $student->savings->where('date', '<', $request->start_date);
-            $prevIn  = $prevSavings->where('type', 'in')->sum('amount');
+            $prevIn = $prevSavings->where('type', 'in')->sum('amount');
             $prevOut = $prevSavings->where('type', 'out')->sum('amount');
             $saldoLalu = $prevIn - $prevOut;
 
@@ -51,23 +51,23 @@ class StudentSavingPdfController extends Controller
             $totalSekarang = $saldoLalu + $setorSekarang;
 
             return [
-                'nisn'           => $student->nisn ?? '-',
-                'name'           => $student->name,
-                'saldo_lalu'     => $saldoLalu,
+                'nisn' => $student->nisn ?? '-',
+                'name' => $student->name,
+                'saldo_lalu' => $saldoLalu,
                 'setor_sekarang' => $setorSekarang,
                 'total_sekarang' => $totalSekarang,
             ];
         });
 
         $pdf = Pdf::loadView('pdf.laporan-tabungan-siswa', [
-            'class'              => $class,
-            'summary'            => $summary,
-            'startDate'          => $request->start_date,
-            'endDate'            => $request->end_date,
-            'school'             => $school,
-            'headmaster'         => $headmaster,
-            'teacher'            => $class->homeroomTeacher,
-            'grandTotalLalu'     => $summary->sum('saldo_lalu'),
+            'class' => $class,
+            'summary' => $summary,
+            'startDate' => $request->start_date,
+            'endDate' => $request->end_date,
+            'school' => $school,
+            'headmaster' => $headmaster,
+            'teacher' => $class->homeroomTeacher,
+            'grandTotalLalu' => $summary->sum('saldo_lalu'),
             'grandSetorSekarang' => $summary->sum('setor_sekarang'),
             'grandTotalSekarang' => $summary->sum('total_sekarang'),
         ])->setPaper('a4', 'landscape');

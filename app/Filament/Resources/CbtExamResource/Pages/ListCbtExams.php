@@ -14,7 +14,7 @@ class ListCbtExams extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
-            
+
         ];
     }
 }

@@ -1,14 +1,15 @@
 <?php
+
 namespace App\Filament\Resources\EnrollmentResource\Pages;
 
 use App\Filament\Resources\EnrollmentResource;
 use App\Models\Enrollment;
+use App\Models\Student;
 use Filament\Actions;
 use Filament\Forms;
-use Filament\Notifications\Notification;
-use Filament\Resources\Pages\ListRecords;
-use App\Models\Student; // Pastikan import Model Student di bagian atas file
 use Filament\Forms\Get;
+use Filament\Notifications\Notification; // Pastikan import Model Student di bagian atas file
+use Filament\Resources\Pages\ListRecords;
 
 class ListEnrollments extends ListRecords
 {
@@ -62,7 +63,7 @@ class ListEnrollments extends ListRecords
                             $academicYearId = $get('academic_year_id');
 
                             // 1. Jika Tahun Ajaran belum dipilih, tampilkan semua siswa
-                            if (!$academicYearId) {
+                            if (! $academicYearId) {
                                 return Student::query()->pluck('name', 'id');
                             }
 
@@ -96,11 +97,11 @@ class ListEnrollments extends ListRecords
                             ->where('student_id', $studentId)
                             ->exists();
 
-                        if (!$exists) {
+                        if (! $exists) {
                             Enrollment::create([
                                 'academic_year_id' => $academicYearId,
-                                'class_id'        => $classId,
-                                'student_id'      => $studentId,
+                                'class_id' => $classId,
+                                'student_id' => $studentId,
                             ]);
                             $insertedCount++;
                         } else {
@@ -110,10 +111,10 @@ class ListEnrollments extends ListRecords
 
                     Notification::make()
                         ->title('Plotting Rombel Selesai')
-                        ->body("Berhasil mendaftarkan {$insertedCount} siswa ke kelas. " . ($skippedCount > 0 ? "({$skippedCount} siswa dilewati)." : ""))
+                        ->body("Berhasil mendaftarkan {$insertedCount} siswa ke kelas. ".($skippedCount > 0 ? "({$skippedCount} siswa dilewati)." : ''))
                         ->success()
                         ->send();
                 }),
-            ];
+        ];
     }
 }

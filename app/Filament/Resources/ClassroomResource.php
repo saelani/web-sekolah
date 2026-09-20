@@ -15,7 +15,6 @@ use Illuminate\Database\Eloquent\Builder;
 class ClassroomResource extends Resource
 {
     use HasRoleScope;
-    
 
     protected static ?string $model = ClassRoom::class;
 
@@ -49,9 +48,13 @@ class ClassroomResource extends Resource
                             ->required()
                             ->live()
                             ->afterStateUpdated(function ($state, callable $set) {
-                                if (in_array($state, [1, 2])) $set('phase', 'A');
-                                elseif (in_array($state, [3, 4])) $set('phase', 'B');
-                                elseif (in_array($state, [5, 6])) $set('phase', 'C');
+                                if (in_array($state, [1, 2])) {
+                                    $set('phase', 'A');
+                                } elseif (in_array($state, [3, 4])) {
+                                    $set('phase', 'B');
+                                } elseif (in_array($state, [5, 6])) {
+                                    $set('phase', 'C');
+                                }
                             }),
 
                         Forms\Components\Select::make('phase')

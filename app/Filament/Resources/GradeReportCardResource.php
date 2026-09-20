@@ -15,8 +15,11 @@ class GradeReportCardResource extends Resource
     protected static ?string $model = GradeReportCard::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-document-chart-bar';
+
     protected static ?string $navigationGroup = 'Rapor';
+
     protected static ?string $navigationLabel = 'Cetak Rapor Siswa';
+
     protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
@@ -35,9 +38,9 @@ class GradeReportCardResource extends Resource
                         Forms\Components\Select::make('status')
                             ->label('Status Rapor')
                             ->options([
-                                'draft'      => 'Draft',
-                                'published'  => 'Diterbitkan / Siap Cetak',
-                                'archived'   => 'Arsip',
+                                'draft' => 'Draft',
+                                'published' => 'Diterbitkan / Siap Cetak',
+                                'archived' => 'Arsip',
                             ])
                             ->default('draft')
                             ->required(),
@@ -92,9 +95,9 @@ class GradeReportCardResource extends Resource
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'published' => 'success',
-                        'draft'     => 'warning',
-                        'archived'  => 'gray',
-                        default     => 'gray',
+                        'draft' => 'warning',
+                        'archived' => 'gray',
+                        default => 'gray',
                     }),
             ])
             ->filters([
@@ -112,9 +115,9 @@ class GradeReportCardResource extends Resource
                 Tables\Filters\SelectFilter::make('status')
                     ->label('Status Rapor')
                     ->options([
-                        'draft'     => 'Draft',
+                        'draft' => 'Draft',
                         'published' => 'Diterbitkan / Siap Cetak',
-                        'archived'  => 'Arsip',
+                        'archived' => 'Arsip',
                     ]),
             ]);
     }
@@ -122,9 +125,9 @@ class GradeReportCardResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListGradeReportCards::route('/'),
+            'index' => Pages\ListGradeReportCards::route('/'),
             'create' => Pages\CreateGradeReportCard::route('/create'),
-            'edit'   => Pages\EditGradeReportCard::route('/{record}/edit'),
+            'edit' => Pages\EditGradeReportCard::route('/{record}/edit'),
         ];
     }
 }

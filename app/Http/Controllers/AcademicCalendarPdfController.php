@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\AcademicCalendar;
 use App\Models\ClassRoom;
+use App\Models\SchoolProfile;
 use App\Models\Subject;
 use App\Models\Teacher;
-use App\Models\SchoolProfile;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -17,8 +17,8 @@ class AcademicCalendarPdfController extends Controller
     {
         $request->validate([
             'class_room_id' => 'required|exists:acad_classes,id',
-            'semester'      => 'required|in:1,2',
-            'year'          => 'required|numeric',
+            'semester' => 'required|in:1,2',
+            'year' => 'required|numeric',
         ]);
 
         $class = ClassRoom::with('homeroomTeacher')->findOrFail($request->class_room_id);
@@ -33,19 +33,19 @@ class AcademicCalendarPdfController extends Controller
             $endMonth = 12;
             $monthsList = [
                 7 => 'Juli', 8 => 'Agustus', 9 => 'September',
-                10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+                10 => 'Oktober', 11 => 'November', 12 => 'Desember',
             ];
             $startDate = "{$year}-07-01";
-            $endDate   = "{$year}-12-31";
+            $endDate = "{$year}-12-31";
         } else {
             $startMonth = 1;
             $endMonth = 6;
             $monthsList = [
                 1 => 'Januari', 2 => 'Februari', 3 => 'Maret',
-                4 => 'April', 5 => 'Mei', 6 => 'Juni'
+                4 => 'April', 5 => 'Mei', 6 => 'Juni',
             ];
             $startDate = "{$year}-01-01";
-            $endDate   = "{$year}-06-30";
+            $endDate = "{$year}-06-30";
         }
 
         // Fetch Query
@@ -76,21 +76,23 @@ class AcademicCalendarPdfController extends Controller
                 // Hitung minggu ke berapa dalam bulan tersebut (1-5)
                 $dayOfMonth = $eventStart->day;
                 $weekNumber = (int) ceil($dayOfMonth / 7);
-                if ($weekNumber > 5) $weekNumber = 5;
+                if ($weekNumber > 5) {
+                    $weekNumber = 5;
+                }
 
                 $monthlyMatrix[$mNum]['weeks'][$weekNumber][] = $event;
             }
         }
 
         $pdf = Pdf::loadView('pdf.laporan-kalender-pembelajaran', [
-            'class'         => $class,
-            'subject'       => $subject,
-            'semester'      => $request->semester,
-            'year'          => $year,
+            'class' => $class,
+            'subject' => $subject,
+            'semester' => $request->semester,
+            'year' => $year,
             'monthlyMatrix' => $monthlyMatrix,
-            'school'        => $school,
-            'headmaster'    => $headmaster,
-            'teacher'       => $class->homeroomTeacher,
+            'school' => $school,
+            'headmaster' => $headmaster,
+            'teacher' => $class->homeroomTeacher,
         ])->setPaper('a4', 'landscape');
 
         return $pdf->stream("Pemetaan_Pembelajaran_{$class->name}.pdf");

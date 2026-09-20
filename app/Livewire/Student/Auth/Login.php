@@ -2,12 +2,13 @@
 
 namespace App\Livewire\Student\Auth;
 
-use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
 
 class Login extends Component
 {
     public string $email = '';
+
     public string $password = '';
 
     public function login()
@@ -30,6 +31,7 @@ class Login extends Component
                 session()->regenerateToken();
 
                 $this->addError('email', 'Akun ini bukan akun siswa. Silakan login via Admin Panel.');
+
                 return;
             }
 

@@ -19,8 +19,9 @@ class PublicApiController extends Controller
     {
         $profile = SchoolProfile::first();
         if ($profile && $profile->logo_path) {
-            $profile->logo_url = asset('storage/' . $profile->logo_path);
+            $profile->logo_url = asset('storage/'.$profile->logo_path);
         }
+
         return response()->json(['data' => $profile]);
     }
 
@@ -55,7 +56,7 @@ class PublicApiController extends Controller
         $facilities = SchoolFacility::latest()->get();
 
         return response()->json([
-            'data' => SchoolFacilityResource::collection($facilities)
+            'data' => SchoolFacilityResource::collection($facilities),
         ]);
     }
 
@@ -65,7 +66,7 @@ class PublicApiController extends Controller
         $achievements = SchoolAchievement::latest('achievement_date')->get();
 
         return response()->json([
-            'data' => SchoolAchievementResource::collection($achievements)
+            'data' => SchoolAchievementResource::collection($achievements),
         ]);
     }
 }

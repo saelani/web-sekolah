@@ -15,13 +15,13 @@ trait HasAcademicScope
         $user = auth()->user();
 
         // Jika User tidak login atau merupakan Admin, tampilkan semua data
-        if (!$user || $user->hasRole('admin') || $user->is_admin) {
+        if (! $user || $user->hasRole('admin') || $user->is_admin) {
             return $query;
         }
 
         $teacherId = $user->teacher_id ?? null;
 
-        if (!$teacherId) {
+        if (! $teacherId) {
             // Jika user BUKAN admin dan BUKAN guru, kembalikan query kosong
             return $query->whereRaw('1 = 0');
         }
@@ -39,33 +39,33 @@ trait HasAcademicScope
             // Filter Kelas yang Diampu
             'acad_classes' => $query->whereIn('id', function ($q) use ($teacherId) {
                 $q->select('class_id')
-                  ->from('acad_teacher_subject_classe')
-                  ->where('teacher_id', $teacherId);
+                    ->from('acad_teacher_subject_classe')
+                    ->where('teacher_id', $teacherId);
             }),
 
             // Filter Mata Pelajaran yang Diajar
             'acad_subjects' => $query->whereIn('id', function ($q) use ($teacherId) {
                 $q->select('subject_id')
-                  ->from('acad_teacher_subject_classe')
-                  ->where('teacher_id', $teacherId);
+                    ->from('acad_teacher_subject_classe')
+                    ->where('teacher_id', $teacherId);
             }),
 
             // Filter Siswa (Hanya siswa di kelas yang diampu guru)
             'acad_students' => $query->whereIn('id', function ($q) use ($teacherId) {
                 $q->select('student_id')
-                  ->from('acad_enrollments')
-                  ->whereIn('class_id', function ($q2) use ($teacherId) {
-                      $q2->select('class_id')
-                         ->from('acad_teacher_subject_classe')
-                         ->where('teacher_id', $teacherId);
-                  });
+                    ->from('acad_enrollments')
+                    ->whereIn('class_id', function ($q2) use ($teacherId) {
+                        $q2->select('class_id')
+                            ->from('acad_teacher_subject_classe')
+                            ->where('teacher_id', $teacherId);
+                    });
             }),
 
             // Filter Enrollment/Pendaftaran Siswa
             'acad_enrollments' => $query->whereIn('class_id', function ($q) use ($teacherId) {
                 $q->select('class_id')
-                  ->from('acad_teacher_subject_classe')
-                  ->where('teacher_id', $teacherId);
+                    ->from('acad_teacher_subject_classe')
+                    ->where('teacher_id', $teacherId);
             }),
 
             default => $query,

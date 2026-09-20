@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Filament\Resources\TeacherSubjectClassesResource\Pages;
 
 use App\Filament\Resources\TeacherSubjectClassesResource;
@@ -67,9 +68,9 @@ class ListTeacherSubjectClasses extends ListRecords
                         foreach ($classIds as $classId) {
                             TeacherSubjectClass::firstOrCreate([
                                 'academic_year_id' => $data['academic_year_id'],
-                                'teacher_id'       => $data['teacher_id'],
-                                'subject_id'       => $subjectId,
-                                'class_id'         => $classId,
+                                'teacher_id' => $data['teacher_id'],
+                                'subject_id' => $subjectId,
+                                'class_id' => $classId,
                             ]);
                             $inserted++;
                         }

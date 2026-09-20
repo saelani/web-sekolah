@@ -2,37 +2,45 @@
 
 namespace App\Livewire\Student;
 
-use Livewire\Component;
-use Illuminate\Support\Facades\Auth;
-use App\Models\Student;
-use App\Models\StudentSaving;
-use App\Models\StudentAttendance;
-use App\Models\Subject;
+use App\Models\Assignment;
 use App\Models\CbtExam;
 use App\Models\CbtExamSession;
-use App\Models\CbtStudentAnswer;
 use App\Models\CbtOption;
-use App\Models\Material; 
-use App\Models\Schedule;     // <-- Tambahan Model Schedule
-use App\Models\Assignment;   // <-- Tambahan Model Assignment
-use App\Models\Enrollment;
-use App\Models\AcademicYear;
+use App\Models\CbtStudentAnswer;
+use App\Models\Material;
+use App\Models\Schedule;
+use App\Models\Student;
+use App\Models\StudentAttendance;
+use App\Models\StudentSaving;
+use App\Models\Subject;
+use Illuminate\Support\Facades\Auth;     // <-- Tambahan Model Schedule
+use Livewire\Component;   // <-- Tambahan Model Assignment
 
 class Dashboard extends Component
 {
     public $activeTab = 'dashboard';
+
     public $selectedSubject = '';
+
     public $currentStudent;
+
     public bool $isAdminPreview = false;
 
     // Properti CBT Engine
     public bool $isTakingExam = false;
+
     public ?CbtExam $activeExam = null;
+
     public ?CbtExamSession $activeSession = null;
+
     public array $questions = [];
+
     public array $userAnswers = [];
+
     public array $essayAnswers = [];
+
     public int $currentIndex = 0;
+
     public int $remainingSeconds = 0;
 
     private function resolveStudent()
@@ -52,25 +60,28 @@ class Dashboard extends Component
         }
 
         $this->currentStudent = $student;
+
         return $student;
     }
 
     public function startExam($examId)
     {
         $studentUser = $this->resolveStudent();
-        if (! $studentUser) return;
+        if (! $studentUser) {
+            return;
+        }
 
         $this->activeExam = CbtExam::with(['questions.options'])->findOrFail($examId);
 
         $this->activeSession = CbtExamSession::firstOrCreate(
             [
                 'cbt_exam_id' => $this->activeExam->id,
-                'student_id'  => $studentUser->id,
+                'student_id' => $studentUser->id,
             ],
             [
-                'start_time'   => now(),
+                'start_time' => now(),
                 'max_end_time' => now()->addMinutes($this->activeExam->duration_minutes ?? $this->activeExam->duration ?? 60),
-                'status'       => 'ongoing',
+                'status' => 'ongoing',
             ]
         );
 
@@ -90,13 +101,13 @@ class Dashboard extends Component
             }
 
             return [
-                'id'            => $q->id,
-                'type'          => $q->type ?? $q->question_type ?? (count($options) > 0 ? 'multiple_choice' : 'essay'),
+                'id' => $q->id,
+                'type' => $q->type ?? $q->question_type ?? (count($options) > 0 ? 'multiple_choice' : 'essay'),
                 'question_text' => is_array($q->question_text) ? ($q->question_text['text'] ?? json_encode($q->question_text)) : $q->question_text,
-                'score_weight'  => $q->score_weight ?? 1,
-                'options'       => $options->map(function ($opt) {
+                'score_weight' => $q->score_weight ?? 1,
+                'options' => $options->map(function ($opt) {
                     return [
-                        'id'          => $opt->id,
+                        'id' => $opt->id,
                         'option_text' => $opt->option_text ?? $opt->text ?? '',
                     ];
                 })->toArray(),
@@ -132,41 +143,45 @@ class Dashboard extends Component
 
     public function saveAnswer($questionId, $optionId)
     {
-        if (! $this->activeSession) return;
+        if (! $this->activeSession) {
+            return;
+        }
 
         $this->userAnswers[$questionId] = $optionId;
 
         $selectedOption = CbtOption::find($optionId);
-        $isCorrect = $selectedOption ? (bool)$selectedOption->is_correct : false;
+        $isCorrect = $selectedOption ? (bool) $selectedOption->is_correct : false;
 
         CbtStudentAnswer::updateOrCreate(
             [
                 'cbt_exam_session_id' => $this->activeSession->id,
-                'cbt_question_id'     => $questionId,
+                'cbt_question_id' => $questionId,
             ],
             [
                 'cbt_option_id' => $optionId,
-                'answer_text'   => null,
-                'is_correct'    => $isCorrect,
+                'answer_text' => null,
+                'is_correct' => $isCorrect,
             ]
         );
     }
 
     public function saveEssayAnswer($questionId)
     {
-        if (! $this->activeSession) return;
+        if (! $this->activeSession) {
+            return;
+        }
 
         $textAnswer = $this->essayAnswers[$questionId] ?? '';
 
         CbtStudentAnswer::updateOrCreate(
             [
                 'cbt_exam_session_id' => $this->activeSession->id,
-                'cbt_question_id'     => $questionId,
+                'cbt_question_id' => $questionId,
             ],
             [
                 'cbt_option_id' => null,
-                'answer_text'   => $textAnswer,
-                'is_correct'    => null,
+                'answer_text' => $textAnswer,
+                'is_correct' => null,
             ]
         );
 
@@ -198,10 +213,12 @@ class Dashboard extends Component
 
     public function submitExam()
     {
-        if (! $this->activeSession) return;
+        if (! $this->activeSession) {
+            return;
+        }
 
         $answers = CbtStudentAnswer::where('cbt_exam_session_id', $this->activeSession->id)->get();
-        
+
         $totalScoreWeight = array_sum(array_column($this->questions, 'score_weight')) ?: count($this->questions);
         $earnedScoreWeight = 0;
 
@@ -216,8 +233,8 @@ class Dashboard extends Component
 
         $this->activeSession->update([
             'submitted_at' => now(),
-            'total_score'  => $finalScore,
-            'status'       => 'completed',
+            'total_score' => $finalScore,
+            'status' => 'completed',
         ]);
 
         $this->isTakingExam = false;
@@ -228,14 +245,16 @@ class Dashboard extends Component
 
     public function convertToEmbedUrl($url)
     {
-        if (empty($url)) return '';
+        if (empty($url)) {
+            return '';
+        }
 
         if (preg_match('/youtu\.be\/([a-zA-Z0-9_-]+)/', $url, $matches)) {
-            return 'https://www.youtube.com/embed/' . $matches[1];
+            return 'https://www.youtube.com/embed/'.$matches[1];
         }
 
         if (preg_match('/watch\?v=([a-zA-Z0-9_-]+)/', $url, $matches)) {
-            return 'https://www.youtube.com/embed/' . $matches[1];
+            return 'https://www.youtube.com/embed/'.$matches[1];
         }
 
         return $url;
@@ -250,7 +269,7 @@ class Dashboard extends Component
         $recentSavings = collect();
         $attendances = ['hadir' => 0, 'sakit' => 0, 'izin' => 0, 'alfa' => 0];
         $cbtExams = collect();
-        $materials = collect(); 
+        $materials = collect();
         $rawSchedules = collect();
         $assignments = collect();
 
@@ -283,8 +302,8 @@ class Dashboard extends Component
 
             $attendances['hadir'] = StudentAttendance::where('student_id', $studentId)->where('status', 'hadir')->count();
             $attendances['sakit'] = StudentAttendance::where('student_id', $studentId)->where('status', 'sakit')->count();
-            $attendances['izin']  = StudentAttendance::where('student_id', $studentId)->where('status', 'izin')->count();
-            $attendances['alfa']  = StudentAttendance::where('student_id', $studentId)->where('status', 'alfa')->count();
+            $attendances['izin'] = StudentAttendance::where('student_id', $studentId)->where('status', 'izin')->count();
+            $attendances['alfa'] = StudentAttendance::where('student_id', $studentId)->where('status', 'alfa')->count();
 
             // Query CBT Exams
             $cbtExamsQuery = CbtExam::where('is_active', true);
@@ -299,11 +318,11 @@ class Dashboard extends Component
 
             // Query Materials
             $materialsQuery = Material::where('is_active', true);
-            
+
             if (! empty($this->selectedSubject)) {
                 $subjectModel = Subject::find($this->selectedSubject);
                 if ($subjectModel) {
-                    $materialsQuery->where('subject', 'like', '%' . $subjectModel->name . '%');
+                    $materialsQuery->where('subject', 'like', '%'.$subjectModel->name.'%');
                 }
             }
 
@@ -329,18 +348,18 @@ class Dashboard extends Component
         $allSubjects = Subject::orderBy('name', 'asc')->get();
 
         return view('livewire.student.dashboard', [
-            'user'          => $user,
-            'student'       => $studentUser,
-            'totalSavings'  => $totalSavings,
+            'user' => $user,
+            'student' => $studentUser,
+            'totalSavings' => $totalSavings,
             'recentSavings' => $recentSavings,
-            'attendances'   => $attendances,
-            'allSubjects'   => $allSubjects,
-            'cbtExams'      => $cbtExams,
-            'materials'     => $materials,
-            'masterTimes'   => $masterTimes,
-            'daysOrder'     => $daysOrder,
-            'rawSchedules'  => $rawSchedules, 
-            'assignments'   => $assignments, 
+            'attendances' => $attendances,
+            'allSubjects' => $allSubjects,
+            'cbtExams' => $cbtExams,
+            'materials' => $materials,
+            'masterTimes' => $masterTimes,
+            'daysOrder' => $daysOrder,
+            'rawSchedules' => $rawSchedules,
+            'assignments' => $assignments,
         ])->layout('components.layouts.app');
     }
 }

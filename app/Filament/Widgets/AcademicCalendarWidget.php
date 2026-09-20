@@ -12,10 +12,12 @@ class AcademicCalendarWidget extends Widget
     protected static string $view = 'filament.widgets.academic-calendar-widget';
 
     // Lebar widget memenuhi layar
-    protected int | string | array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 'full';
 
     public string $currentMonth;
+
     public string $currentYear;
+
     public ?int $selectedClassId = null;
 
     public function mount(): void
@@ -26,14 +28,14 @@ class AcademicCalendarWidget extends Widget
 
     public function nextMonth(): void
     {
-        $date = Carbon::createFromDate((int)$this->currentYear, (int)$this->currentMonth, 1)->addMonth();
+        $date = Carbon::createFromDate((int) $this->currentYear, (int) $this->currentMonth, 1)->addMonth();
         $this->currentMonth = $date->format('m');
         $this->currentYear = $date->format('Y');
     }
 
     public function previousMonth(): void
     {
-        $date = Carbon::createFromDate((int)$this->currentYear, (int)$this->currentMonth, 1)->subMonth();
+        $date = Carbon::createFromDate((int) $this->currentYear, (int) $this->currentMonth, 1)->subMonth();
         $this->currentMonth = $date->format('m');
         $this->currentYear = $date->format('Y');
     }
@@ -46,7 +48,7 @@ class AcademicCalendarWidget extends Widget
 
     public function getViewData(): array
     {
-        $startOfMonth = Carbon::createFromDate((int)$this->currentYear, (int)$this->currentMonth, 1)->startOfMonth();
+        $startOfMonth = Carbon::createFromDate((int) $this->currentYear, (int) $this->currentMonth, 1)->startOfMonth();
         $endOfMonth = $startOfMonth->copy()->endOfMonth();
 
         // Cari hari pertama dalam grid (Senin) & hari terakhir (Minggu)
@@ -60,10 +62,10 @@ class AcademicCalendarWidget extends Widget
                     ->orWhereBetween('end_date', [$startDate->toDateString(), $endDate->toDateString()])
                     ->orWhere(function ($q) use ($startDate, $endDate) {
                         $q->where('start_date', '<=', $startDate->toDateString())
-                          ->where('end_date', '>=', $endDate->toDateString());
+                            ->where('end_date', '>=', $endDate->toDateString());
                     });
             })
-            ->when($this->selectedClassId, fn($q) => $q->where('class_room_id', $this->selectedClassId))
+            ->when($this->selectedClassId, fn ($q) => $q->where('class_room_id', $this->selectedClassId))
             ->get();
 
         // Matriks tanggal untuk 7 kolom (Senin - Minggu)
@@ -77,26 +79,26 @@ class AcademicCalendarWidget extends Widget
             $dayEvents = $events->filter(function ($event) use ($dateString) {
                 $start = $event->start_date instanceof Carbon ? $event->start_date->toDateString() : Carbon::parse($event->start_date)->toDateString();
                 $end = $event->end_date instanceof Carbon ? $event->end_date->toDateString() : Carbon::parse($event->end_date)->toDateString();
-                
+
                 return $dateString >= $start && $dateString <= $end;
             });
 
             $days[] = [
-                'date'           => $current->copy(),
-                'dateString'     => $dateString,
-                'dayNumber'      => $current->format('d'),
+                'date' => $current->copy(),
+                'dateString' => $dateString,
+                'dayNumber' => $current->format('d'),
                 'isCurrentMonth' => $current->month === (int) $this->currentMonth,
-                'isToday'        => $current->isToday(),
-                'events'         => $dayEvents,
+                'isToday' => $current->isToday(),
+                'events' => $dayEvents,
             ];
 
             $current->addDay();
         }
 
         return [
-            'days'        => $days,
-            'monthName'   => $startOfMonth->translatedFormat('F Y'),
-            'classes'     => ClassRoom::pluck('name', 'id')->toArray(),
+            'days' => $days,
+            'monthName' => $startOfMonth->translatedFormat('F Y'),
+            'classes' => ClassRoom::pluck('name', 'id')->toArray(),
         ];
     }
 }

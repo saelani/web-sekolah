@@ -18,7 +18,6 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
-use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\URL;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
@@ -39,11 +38,11 @@ class AdminPanelProvider extends PanelProvider
             /* Warna Akses & Tombol Utama Dapodik */
             ->colors([
                 'primary' => Color::Hex('#0284c7'),  // Biru Dapodik
-                'info'    => Color::Hex('#003366'),  // Biru Tua Kemendikbud
-                'warning' => Color::Hex('#eab308'),  
-                'danger'  => Color::Hex('#dc2626'),
+                'info' => Color::Hex('#003366'),  // Biru Tua Kemendikbud
+                'warning' => Color::Hex('#eab308'),
+                'danger' => Color::Hex('#dc2626'),
                 'success' => Color::Hex('#16a34a'),
-                'gray'    => Color::Slate,
+                'gray' => Color::Slate,
             ])
             /* Memastikan Sidebar Bisa Di-toggle & Hamburger Icon Aktif */
             ->sidebarCollapsibleOnDesktop()
@@ -86,8 +85,8 @@ class AdminPanelProvider extends PanelProvider
         FilamentView::registerRenderHook(
             'panels::user-menu.before',
             fn (): string => '<div class="hidden sm:flex flex-col text-right mr-2 justify-center">
-                <span class="text-xs font-bold text-white leading-tight">' . (auth()->user()?->name ?? 'User') . '</span>
-                <span class="text-[10px] text-sky-200 leading-tight">' . (auth()->user()?->email ?? '') . '</span>
+                <span class="text-xs font-bold text-white leading-tight">'.(auth()->user()?->name ?? 'User').'</span>
+                <span class="text-[10px] text-sky-200 leading-tight">'.(auth()->user()?->email ?? '').'</span>
             </div>'
         );
 

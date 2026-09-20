@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Filament\Resources\StudentSavingResource\Pages;
 
 use App\Filament\Resources\StudentSavingResource;
@@ -53,7 +54,7 @@ class BatchStudentSaving extends Page implements HasForms
                                 $query = ClassRoom::query();
                                 $userRole = $user->role ?? $user->role_type ?? '';
 
-                                if (!in_array($userRole, ['admin', 'headmaster', 'super_admin']) && !($user->is_admin ?? false)) {
+                                if (! in_array($userRole, ['admin', 'headmaster', 'super_admin']) && ! ($user->is_admin ?? false)) {
                                     $teacherId = $user->teacher?->id ?? $user->teacher_id;
                                     if ($teacherId) {
                                         $query->where('teacher_id', $teacherId);
@@ -76,7 +77,7 @@ class BatchStudentSaving extends Page implements HasForms
                         Select::make('type')
                             ->label('Jenis Transaksi')
                             ->options([
-                                'in'  => 'Setor (Masuk)',
+                                'in' => 'Setor (Masuk)',
                                 'out' => 'Tarik (Keluar)',
                             ])
                             ->default('in')
@@ -91,7 +92,7 @@ class BatchStudentSaving extends Page implements HasForms
                             ->collapsible()
                             ->grid([
                                 'default' => 1,
-                                'md'      => 2,
+                                'md' => 2,
                             ])
                             ->schema([
                                 Hidden::make('student_id'),
@@ -125,8 +126,9 @@ class BatchStudentSaving extends Page implements HasForms
      */
     protected function loadStudentsByClassId(?string $classId, Set $set): void
     {
-        if (!$classId) {
+        if (! $classId) {
             $set('students', []);
+
             return;
         }
 
@@ -136,10 +138,10 @@ class BatchStudentSaving extends Page implements HasForms
 
         $studentsData = $students->map(function ($student) {
             return [
-                'student_id'   => $student->id,
+                'student_id' => $student->id,
                 'student_name' => $student->name,
-                'amount'       => null,
-                'description'  => null,
+                'amount' => null,
+                'description' => null,
             ];
         })->toArray();
 
@@ -173,19 +175,20 @@ class BatchStudentSaving extends Page implements HasForms
                 ->body('Tidak ada data siswa yang diproses.')
                 ->danger()
                 ->send();
+
             return;
         }
 
         $countSaved = 0;
 
         foreach ($students as $student) {
-            if (isset($student['amount']) && $student['amount'] !== '' && (float)$student['amount'] > 0) {
+            if (isset($student['amount']) && $student['amount'] !== '' && (float) $student['amount'] > 0) {
                 StudentSaving::create([
-                    'student_id'  => $student['student_id'],
-                    'user_id'     => Auth::id(),
-                    'date'        => $date,
-                    'type'        => $type,
-                    'amount'      => (float)$student['amount'],
+                    'student_id' => $student['student_id'],
+                    'user_id' => Auth::id(),
+                    'date' => $date,
+                    'type' => $type,
+                    'amount' => (float) $student['amount'],
                     'description' => $student['description'] ?? null,
                 ]);
                 $countSaved++;

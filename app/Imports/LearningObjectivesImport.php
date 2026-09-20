@@ -12,9 +12,13 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
 class LearningObjectivesImport implements ToCollection, WithHeadingRow
 {
     protected int $subjectId;
+
     protected int $sumativeScopeId; // Ditambahkan untuk relasi bab
+
     protected string $phase;
+
     protected int $level;
+
     protected int $semester;
 
     public function __construct(int $subjectId, int $sumativeScopeId, string $phase, int $level, int $semester)
@@ -57,18 +61,18 @@ class LearningObjectivesImport implements ToCollection, WithHeadingRow
             $generatedCode = "TP-{$lastCount}"; // Bisa disesuaikan format kodenya
 
             $insertData = [
-                'subject_id'        => $this->subjectId,
+                'subject_id' => $this->subjectId,
                 'sumative_scope_id' => $this->sumativeScopeId, // Menyimpan relasi bab
-                'phase'             => $this->phase,
-                'level'             => $this->level,
-                'semester'          => $this->semester,
-                'code'              => $generatedCode,
-                'description'       => trim($description),
+                'phase' => $this->phase,
+                'level' => $this->level,
+                'semester' => $this->semester,
+                'code' => $generatedCode,
+                'description' => trim($description),
             ];
 
             // 3. Tangani kolom lama (chapter_number & chapter_name) secara aman jika kolomnya masih ada di database
             $chapterNumber = $row['bab'] ?? $row['chapter_number'] ?? $row['lingkup_materi'] ?? null;
-            $chapterName   = $row['nama_bab'] ?? $row['chapter_name'] ?? $row['nama_lingkup_materi'] ?? ($scope ? $scope->name : null);
+            $chapterName = $row['nama_bab'] ?? $row['chapter_name'] ?? $row['nama_lingkup_materi'] ?? ($scope ? $scope->name : null);
 
             if (Schema::hasColumn($table, 'chapter_number')) {
                 $insertData['chapter_number'] = $chapterNumber ? trim($chapterNumber) : '-';

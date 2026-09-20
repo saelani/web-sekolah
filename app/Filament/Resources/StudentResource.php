@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources;
 
+use App\Exports\StudentsExport;
 use App\Filament\Resources\StudentResource\Pages;
+use App\Imports\StudentsImport;
 use App\Models\Student;
 use App\Traits\HasRoleScope;
 use App\Traits\HasUniversalExportImport;
@@ -11,15 +13,13 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use App\Imports\StudentsImport; 
-use App\Exports\StudentsExport; 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class StudentResource extends Resource
 {
-    use HasRoleScope; 
+    use HasRoleScope;
     use HasUniversalExportImport;
 
     protected static ?string $model = Student::class;
@@ -56,8 +56,8 @@ class StudentResource extends Resource
 
             // Ambil ID kelas wali kelas & ID kelas mapel yang diajar
             $homeroomClassIds = $teacher->homeroomClasses()->pluck('id')->toArray();
-            $subjectClassIds  = $teacher->teacherSubjectClasses()->pluck('class_id')->toArray();
-            
+            $subjectClassIds = $teacher->teacherSubjectClasses()->pluck('class_id')->toArray();
+
             $allClassIds = array_unique(array_merge($homeroomClassIds, $subjectClassIds));
 
             return $query->whereIn('class_id', $allClassIds);
@@ -233,7 +233,7 @@ class StudentResource extends Resource
             ])
             ->headerActions([
                 static::getImportAction(StudentsImport::class),
-                static::getExportAction(StudentsExport::class, 'data-siswa-' . date('Y-m-d') . '.xlsx'),
+                static::getExportAction(StudentsExport::class, 'data-siswa-'.date('Y-m-d').'.xlsx'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make()->color('warning'),

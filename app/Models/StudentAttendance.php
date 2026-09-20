@@ -21,7 +21,7 @@ class StudentAttendance extends Model
         'status',
         'notes',
     ];
-    
+
     protected $casts = ['date' => 'date'];
 
     public function class(): BelongsTo

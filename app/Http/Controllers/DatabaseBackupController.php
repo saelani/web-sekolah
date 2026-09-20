@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use Filament\Notifications\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
-use Filament\Notifications\Notification;
 
 class DatabaseBackupController extends Controller
 {
@@ -19,11 +19,11 @@ class DatabaseBackupController extends Controller
         $dbUser = config('database.connections.mysql.username');
         $dbPass = config('database.connections.mysql.password');
 
-        $fileName = "backup-full-database-" . date('Y-m-d_H-i-s') . ".sql";
-        $filePath = storage_path("app/" . $fileName);
+        $fileName = 'backup-full-database-'.date('Y-m-d_H-i-s').'.sql';
+        $filePath = storage_path('app/'.$fileName);
 
         // Memastikan direktori storage/app ada
-        if (!file_exists(storage_path('app'))) {
+        if (! file_exists(storage_path('app'))) {
             mkdir(storage_path('app'), 0755, true);
         }
 
@@ -40,9 +40,9 @@ class DatabaseBackupController extends Controller
 
         exec($command, $output, $returnVar);
 
-        if ($returnVar !== 0 || !file_exists($filePath) || filesize($filePath) === 0) {
-            $errorMsg = !empty($output) ? implode(' ', $output) : 'Gagal mengekspor database.';
-            
+        if ($returnVar !== 0 || ! file_exists($filePath) || filesize($filePath) === 0) {
+            $errorMsg = ! empty($output) ? implode(' ', $output) : 'Gagal mengekspor database.';
+
             // Hapus file 0 byte jika terbuat
             if (file_exists($filePath)) {
                 @unlink($filePath);
@@ -93,7 +93,7 @@ class DatabaseBackupController extends Controller
         exec($command, $output, $returnVar);
 
         if ($returnVar !== 0) {
-            $errorMsg = !empty($output) ? implode(' ', $output) : 'Format file SQL tidak valid.';
+            $errorMsg = ! empty($output) ? implode(' ', $output) : 'Format file SQL tidak valid.';
 
             Notification::make()
                 ->title('Gagal Memulihkan Database')

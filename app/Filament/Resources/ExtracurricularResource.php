@@ -15,8 +15,11 @@ class ExtracurricularResource extends Resource
     protected static ?string $model = Extracurricular::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
+
     protected static ?string $navigationGroup = 'Penilaian';
+
     protected static ?string $navigationLabel = 'Master Ekstrakurikuler';
+
     protected static ?int $navigationSort = 4;
 
     public static function form(Form $form): Form
@@ -74,9 +77,9 @@ class ExtracurricularResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListExtracurriculars::route('/'),
+            'index' => Pages\ListExtracurriculars::route('/'),
             'create' => Pages\CreateExtracurricular::route('/create'),
-            'edit'   => Pages\EditExtracurricular::route('/{record}/edit'),
+            'edit' => Pages\EditExtracurricular::route('/{record}/edit'),
         ];
     }
 }

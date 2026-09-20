@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\EnrollmentResource\Pages;
@@ -16,11 +17,14 @@ class EnrollmentResource extends Resource
     use HasRoleScope;
 
     protected static ?string $model = Enrollment::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
+
     protected static ?string $navigationGroup = 'Akademik';
+
     protected static ?string $navigationLabel = 'Rombel / Siswa Kelas';
+
     protected static ?int $navigationSort = 3;
-    
 
     public static function form(Form $form): Form
     {
@@ -95,7 +99,7 @@ class EnrollmentResource extends Resource
                     ->default('-'),
             ])
             // ...
-    
+
             ->filters([
                 Tables\Filters\SelectFilter::make('class_id')
                     ->label('Filter Kelas')
@@ -110,7 +114,6 @@ class EnrollmentResource extends Resource
                 Tables\Actions\DeleteAction::make()->color('danger'),
             ]);
     }
-
 
     // Tambahkan method ini di dalam class ListEnrollments
     protected function getTableQuery(): Builder
@@ -132,9 +135,9 @@ class EnrollmentResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListEnrollments::route('/'),
+            'index' => Pages\ListEnrollments::route('/'),
             'create' => Pages\CreateEnrollment::route('/create'),
-            'edit'   => Pages\EditEnrollment::route('/{record}/edit'),
+            'edit' => Pages\EditEnrollment::route('/{record}/edit'),
         ];
     }
 }

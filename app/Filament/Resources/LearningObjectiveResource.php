@@ -3,9 +3,9 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\LearningObjectiveResource\Pages;
+use App\Models\ClassRoom;
 use App\Models\LearningObjective;
 use App\Models\SumativeScope;
-use App\Models\ClassRoom;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -16,9 +16,13 @@ use Illuminate\Database\Eloquent\Builder;
 class LearningObjectiveResource extends Resource
 {
     protected static ?string $model = LearningObjective::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
+
     protected static ?string $navigationGroup = 'Akademik SD';
+
     protected static ?string $navigationLabel = 'Tujuan Pembelajaran (TP)';
+
     protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form
@@ -42,8 +46,7 @@ class LearningObjectiveResource extends Resource
                             ->relationship(
                                 name: 'sumativeScope',
                                 titleAttribute: 'name',
-                                modifyQueryUsing: fn (Builder $query, Forms\Get $get) => 
-                                    $query->when($get('subject_id'), fn ($q, $subjectId) => $q->where('subject_id', $subjectId))
+                                modifyQueryUsing: fn (Builder $query, Forms\Get $get) => $query->when($get('subject_id'), fn ($q, $subjectId) => $q->where('subject_id', $subjectId))
                             )
                             ->label('Bab / Lingkup Materi')
                             ->searchable()
@@ -76,9 +79,13 @@ class LearningObjectiveResource extends Resource
                             ->live()
                             ->afterStateUpdated(function (Forms\Set $set, $state) {
                                 if ($state) {
-                                    if (in_array($state, [1, 2])) $set('phase', 'A');
-                                    elseif (in_array($state, [3, 4])) $set('phase', 'B');
-                                    elseif (in_array($state, [5, 6])) $set('phase', 'C');
+                                    if (in_array($state, [1, 2])) {
+                                        $set('phase', 'A');
+                                    } elseif (in_array($state, [3, 4])) {
+                                        $set('phase', 'B');
+                                    } elseif (in_array($state, [5, 6])) {
+                                        $set('phase', 'C');
+                                    }
                                 }
                             })
                             ->required(),
@@ -97,8 +104,8 @@ class LearningObjectiveResource extends Resource
                         Forms\Components\Select::make('semester')
                             ->label('Semester')
                             ->options([
-                                '1' => 'Semester 1', 
-                                '2' => 'Semester 2'
+                                '1' => 'Semester 1',
+                                '2' => 'Semester 2',
                             ])
                             ->required(),
 
@@ -154,7 +161,7 @@ class LearningObjectiveResource extends Resource
                 Tables\Filters\SelectFilter::make('subject_id')
                     ->relationship('subject', 'name')
                     ->label('Mata Pelajaran'),
-                
+
                 Tables\Filters\SelectFilter::make('sumative_scope_id')
                     ->relationship('sumativeScope', 'name')
                     ->label('Bab / Lingkup Materi'),
@@ -179,9 +186,9 @@ class LearningObjectiveResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListLearningObjectives::route('/'),
+            'index' => Pages\ListLearningObjectives::route('/'),
             'create' => Pages\CreateLearningObjective::route('/create'),
-            'edit'   => Pages\EditLearningObjective::route('/{record}/edit'),
+            'edit' => Pages\EditLearningObjective::route('/{record}/edit'),
         ];
     }
 }

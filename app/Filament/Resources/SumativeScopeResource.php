@@ -15,8 +15,11 @@ class SumativeScopeResource extends Resource
     protected static ?string $model = SumativeScope::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-bookmark-square';
+
     protected static ?string $navigationGroup = 'Kurikulum & Akademik';
+
     protected static ?string $navigationLabel = 'Lingkup Materi (Bab)';
+
     protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form
@@ -112,9 +115,9 @@ class SumativeScopeResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListSumativeScopes::route('/'),
+            'index' => Pages\ListSumativeScopes::route('/'),
             'create' => Pages\CreateSumativeScope::route('/create'),
-            'edit'   => Pages\EditSumativeScope::route('/{record}/edit'),
+            'edit' => Pages\EditSumativeScope::route('/{record}/edit'),
         ];
     }
 }

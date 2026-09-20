@@ -4,8 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ScheduleResource\Pages;
 use App\Models\Schedule;
-use App\Models\ClassRoom;
-use App\Models\Subject;
 use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -20,9 +18,13 @@ class ScheduleResource extends Resource
     protected static ?string $model = Schedule::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar';
+
     protected static ?string $navigationGroup = 'Akademik SD';
+
     protected static ?string $navigationLabel = 'Jadwal Pelajaran';
+
     protected static ?string $modelLabel = 'Jadwal';
+
     protected static ?int $navigationSort = 4;
 
     public static function form(Form $form): Form
@@ -122,6 +124,7 @@ class ScheduleResource extends Resource
                             ->label('Estimasi Jam (Otomatis)')
                             ->content(function (Get $get, Set $set) {
                                 self::calculateScheduleTime($get, $set);
+
                                 return $get('time_info') ?? 'Pilih Jam Ke- dan Jumlah JP untuk melihat waktu mulai & selesai.';
                             })
                             ->columnSpanFull(),
@@ -141,7 +144,9 @@ class ScheduleResource extends Resource
         $startPeriod = (int) $get('start_period');
         $jp = (int) $get('total_jp');
 
-        if (!$startPeriod || !$jp) return;
+        if (! $startPeriod || ! $jp) {
+            return;
+        }
 
         // Master waktu definitif sekolah dasar (memasukkan jeda istirahat 15 menit)
         $scheduleMaster = [

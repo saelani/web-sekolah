@@ -29,7 +29,7 @@ class AuthController extends Controller
         $user = User::where('email', $credentials['email'])->first();
 
         if ($user && Hash::check($credentials['password'], $user->password)) {
-            
+
             // 2. Check if user is associated with student data
             if (! $user->student) {
                 return back()->withErrors([

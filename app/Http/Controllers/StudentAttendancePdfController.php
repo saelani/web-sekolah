@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\ClassRoom;
+use App\Models\SchoolProfile;
 use App\Models\Student;
 use App\Models\StudentAttendance;
 use App\Models\Teacher;
-use App\Models\SchoolProfile; 
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -16,9 +16,9 @@ class StudentAttendancePdfController extends Controller
     public function __invoke(Request $request)
     {
         $request->validate([
-            'class_id'   => 'required|exists:acad_classes,id',
+            'class_id' => 'required|exists:acad_classes,id',
             'start_date' => 'required|date',
-            'end_date'   => 'required|date',
+            'end_date' => 'required|date',
         ]);
 
         Carbon::setLocale('id');
@@ -55,11 +55,11 @@ class StudentAttendancePdfController extends Controller
             $studentAttendances = $attendances->where('student_id', $student->id);
 
             $sakit = $studentAttendances->whereIn('status', ['Sakit', 'S'])->count();
-            $izin  = $studentAttendances->whereIn('status', ['Izin', 'I'])->count();
-            $alpa  = $studentAttendances->whereIn('status', ['Alpa', 'A'])->count();
-            
+            $izin = $studentAttendances->whereIn('status', ['Izin', 'I'])->count();
+            $alpa = $studentAttendances->whereIn('status', ['Alpa', 'A'])->count();
+
             $totalKetidakhadiran = $sakit + $izin + $alpa;
-            
+
             // Hadir adalah total hari efektif (tanpa Sabtu/Minggu) dikurangi total ketidakhadiran
             $hadir = max(0, $effectiveDays - $totalKetidakhadiran);
 
@@ -67,31 +67,31 @@ class StudentAttendancePdfController extends Controller
             $percentage = $effectiveDays > 0 ? round(($hadir / $effectiveDays) * 100, 1) : 0;
 
             return [
-                'student'    => $student,
-                'hadir'      => $hadir,
-                'sakit'      => $sakit,
-                'izin'       => $izin,
-                'alpa'       => $alpa,
-                'total'      => $totalKetidakhadiran,
+                'student' => $student,
+                'hadir' => $hadir,
+                'sakit' => $sakit,
+                'izin' => $izin,
+                'alpa' => $alpa,
+                'total' => $totalKetidakhadiran,
                 'percentage' => $percentage,
             ];
         });
 
         $titiMangsa = $endDate->translatedFormat('d F Y');
-        $monthName  = $startDate->translatedFormat('F Y');
+        $monthName = $startDate->translatedFormat('F Y');
 
         $pdf = Pdf::loadView('pdf.laporan-presensi-siswa', [
-            'class'         => $class,
-            'attendances'   => $attendances,
-            'summary'       => $summary,
-            'startDate'     => $request->start_date,
-            'endDate'       => $request->end_date,
+            'class' => $class,
+            'attendances' => $attendances,
+            'summary' => $summary,
+            'startDate' => $request->start_date,
+            'endDate' => $request->end_date,
             'effectiveDays' => $effectiveDays, // Otomatis tanpa Sabtu & Minggu
-            'monthName'     => $monthName,
-            'school'        => $school,
-            'headmaster'    => $headmaster,
-            'teacher'       => $class->homeroomTeacher,
-            'titiMangsa'    => $titiMangsa,
+            'monthName' => $monthName,
+            'school' => $school,
+            'headmaster' => $headmaster,
+            'teacher' => $class->homeroomTeacher,
+            'titiMangsa' => $titiMangsa,
         ])->setPaper('a4', 'portrait');
 
         return $pdf->stream("Laporan_Persentase_Kehadiran_{$class->name}.pdf");

@@ -16,11 +16,14 @@ use Filament\Tables\Table;
 
 class AcademicCalendarResource extends Resource
 {
-    
     protected static ?string $model = AcademicCalendar::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-calendar';
+
     protected static ?string $navigationGroup = 'Akademik SD';
+
     protected static ?string $navigationLabel = 'Kalender Pembelajaran';
+
     protected static ?int $navigationSort = 4;
 
     public static function form(Form $form): Form
@@ -72,9 +75,9 @@ class AcademicCalendarResource extends Resource
                         Forms\Components\Select::make('activity_type')
                             ->label('Jenis Kegiatan')
                             ->options([
-                                'kbm'   => 'KBM Harian (TP)',
-                                'slm'   => 'Sumatif Lingkup Materi (SLM)',
-                                'sls'   => 'Sumatif Akhir Semester (SLS)',
+                                'kbm' => 'KBM Harian (TP)',
+                                'slm' => 'Sumatif Lingkup Materi (SLM)',
+                                'sls' => 'Sumatif Akhir Semester (SLS)',
                                 'event' => 'Kegiatan Sekolah / Projek P5',
                                 'libur' => 'Libur / Non-KBM',
                             ])
@@ -87,7 +90,9 @@ class AcademicCalendarResource extends Resource
                             ->label('Target TP / Bab')
                             ->options(function (Get $get) {
                                 $subjectId = $get('subject_id');
-                                if (!$subjectId) return [];
+                                if (! $subjectId) {
+                                    return [];
+                                }
 
                                 return LearningObjective::where('subject_id', $subjectId)
                                     ->get()
@@ -144,6 +149,7 @@ class AcademicCalendarResource extends Resource
                             ->label('Keterangan Durasi Jam')
                             ->content(function (Get $get, Set $set) {
                                 self::calculatePeriodDuration($get, $set);
+
                                 return $get('time_info') ?? 'Pilih Jam Ke- dan Jumlah JP untuk melihat estimasi waktu.';
                             }),
 
@@ -169,7 +175,9 @@ class AcademicCalendarResource extends Resource
         $startPeriod = (int) $get('start_period');
         $jp = (int) $get('total_jp');
 
-        if (!$startPeriod || !$jp) return;
+        if (! $startPeriod || ! $jp) {
+            return;
+        }
 
         // Jadwal acuan Jam Ke- (Format 1 JP = 35 Menit SD + Istirahat)
         $scheduleMaster = [
@@ -197,8 +205,8 @@ class AcademicCalendarResource extends Resource
                 $endTime = Carbon::parse($startTime)->addMinutes($jp * 35)->format('H:i');
             }
 
-            $labelPeriod = ($startPeriod == $endPeriod) 
-                ? "Jam Ke-{$startPeriod}" 
+            $labelPeriod = ($startPeriod == $endPeriod)
+                ? "Jam Ke-{$startPeriod}"
                 : "Jam Ke-{$startPeriod} s/d {$endPeriod}";
 
             $set('time_info', "⏱️ {$labelPeriod} | Waktu: {$startTime} - {$endTime} WIB ({$jp} JP)");
@@ -213,12 +221,13 @@ class AcademicCalendarResource extends Resource
                     ->label('Pelaksanaan')
                     ->formatStateUsing(function ($record) {
                         $start = Carbon::parse($record->start_date);
-                        $end   = Carbon::parse($record->end_date);
+                        $end = Carbon::parse($record->end_date);
 
                         if ($start->equalTo($end)) {
                             return $start->format('d M Y');
                         }
-                        return $start->format('d M') . ' - ' . $end->format('d M Y');
+
+                        return $start->format('d M').' - '.$end->format('d M Y');
                     })
                     ->sortable(),
 
@@ -235,9 +244,9 @@ class AcademicCalendarResource extends Resource
                     ->label('Jenis')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'kbm'   => 'success',
-                        'slm'   => 'warning',
-                        'sls'   => 'danger',
+                        'kbm' => 'success',
+                        'slm' => 'warning',
+                        'sls' => 'danger',
                         'event' => 'primary',
                         default => 'gray',
                     })
@@ -256,9 +265,9 @@ class AcademicCalendarResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListAcademicCalendars::route('/'),
+            'index' => Pages\ListAcademicCalendars::route('/'),
             'create' => Pages\CreateAcademicCalendar::route('/create'),
-            'edit'   => Pages\EditAcademicCalendar::route('/{record}/edit'),
+            'edit' => Pages\EditAcademicCalendar::route('/{record}/edit'),
         ];
     }
-}  
+}

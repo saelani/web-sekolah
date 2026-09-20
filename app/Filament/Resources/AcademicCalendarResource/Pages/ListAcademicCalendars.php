@@ -32,7 +32,7 @@ class ListAcademicCalendars extends ListRecords
                             $userRole = $user->role ?? $user->role_type ?? '';
 
                             // Otomatis filter jika user yang login adalah guru/wali kelas
-                            if (!in_array($userRole, ['admin', 'headmaster', 'super_admin']) && !($user->is_admin ?? false)) {
+                            if (! in_array($userRole, ['admin', 'headmaster', 'super_admin']) && ! ($user->is_admin ?? false)) {
                                 $teacherId = $user->teacher?->id ?? $user->teacher_id;
                                 if ($teacherId) {
                                     $query->where('teacher_id', $teacherId);
@@ -71,9 +71,9 @@ class ListAcademicCalendars extends ListRecords
                 ->action(function (array $data) {
                     $url = route('academic-calendar.pdf', [
                         'class_room_id' => $data['class_room_id'],
-                        'subject_id'    => $data['subject_id'] ?? null,
-                        'semester'      => $data['semester'],
-                        'year'          => $data['year'],
+                        'subject_id' => $data['subject_id'] ?? null,
+                        'semester' => $data['semester'],
+                        'year' => $data['year'],
                     ]);
 
                     // Menggunakan DOM link sintetis agar aman dari popup blocker browser

@@ -16,16 +16,16 @@ class CbtGradingService
      * Memproses nilai ujian CBT dan menyinkronkannya ke sistem nilai Kurikulum Merdeka.
      */
     public function calculateAndSyncScore(
-        CbtExamSession $session, 
-        ?int $sumativeScopeId = null, 
+        CbtExamSession $session,
+        ?int $sumativeScopeId = null,
         string $sumativeType = 'lm'
     ): float {
         return DB::transaction(function () use ($session, $sumativeScopeId, $sumativeType) {
             // Eager loading relasi agar terhindar dari N+1 Query
             $session->loadMissing([
-                'exam.questions.options', 
-                'answers', 
-                'student'
+                'exam.questions.options',
+                'answers',
+                'student',
             ]);
 
             $totalWeightedScore = 0;
@@ -36,7 +36,7 @@ class CbtGradingService
                 $maxPossibleScore += $question->score_weight;
                 $answer = $session->answers->firstWhere('cbt_question_id', $question->id);
 
-                if (!$answer) {
+                if (! $answer) {
                     continue;
                 }
 
@@ -63,8 +63,8 @@ class CbtGradingService
             }
 
             // Hitung nilai akhir berbasis persentase (Skala 0 - 100)
-            $finalScore = $maxPossibleScore > 0 
-                ? round(($totalWeightedScore / $maxPossibleScore) * 100, 2) 
+            $finalScore = $maxPossibleScore > 0
+                ? round(($totalWeightedScore / $maxPossibleScore) * 100, 2)
                 : 0;
 
             // 2. Update Status dan Total Nilai Sesi CBT
@@ -84,10 +84,10 @@ class CbtGradingService
 
                 // A. Sinkronkan nilai CBT ke tabel GradeSumatif
                 $this->syncToGradeSumatif(
-                    $enrollment->id, 
-                    $subjectId, 
-                    $sumativeScopeId, 
-                    $sumativeType, 
+                    $enrollment->id,
+                    $subjectId,
+                    $sumativeScopeId,
+                    $sumativeType,
                     $finalScore
                 );
 
@@ -105,18 +105,18 @@ class CbtGradingService
      * Menyimpan/memperbarui data nilai pada GradeSumatif.
      */
     public function syncToGradeSumatif(
-        int $enrollmentId, 
-        int $subjectId, 
-        ?int $sumativeScopeId, 
-        string $type, 
+        int $enrollmentId,
+        int $subjectId,
+        ?int $sumativeScopeId,
+        string $type,
         float $score
     ): GradeSumatif {
         return GradeSumatif::updateOrCreate(
             [
-                'enrollment_id'     => $enrollmentId,
-                'subject_id'        => $subjectId,
+                'enrollment_id' => $enrollmentId,
+                'subject_id' => $subjectId,
                 'sumative_scope_id' => $sumativeScopeId,
-                'type'              => $type,
+                'type' => $type,
             ],
             [
                 'score' => $score,
@@ -160,18 +160,18 @@ class CbtGradingService
 
         if ($formativeGrades->isNotEmpty()) {
             $highestGrade = $formativeGrades->sortByDesc('score')->first();
-            $lowestGrade  = $formativeGrades->sortBy('score')->first();
+            $lowestGrade = $formativeGrades->sortBy('score')->first();
 
             if ($highestGrade && $highestGrade->learningObjective) {
-                $highestDescription = "Menunjukkan penguasaan yang sangat baik dalam " . $highestGrade->learningObjective->title;
+                $highestDescription = 'Menunjukkan penguasaan yang sangat baik dalam '.$highestGrade->learningObjective->title;
             }
 
             if ($lowestGrade && $lowestGrade->learningObjective) {
                 // Berikan catatan terendah hanya jika skor di bawah ambang batas (misal < 75)
                 if ($lowestGrade->score < 75) {
-                    $lowestDescription = "Perlu bimbingan lebih lanjut dalam " . $lowestGrade->learningObjective->title;
+                    $lowestDescription = 'Perlu bimbingan lebih lanjut dalam '.$lowestGrade->learningObjective->title;
                 } else {
-                    $lowestDescription = "Menunjukkan penguasaan yang memadai dalam seluruh Tujuan Pembelajaran.";
+                    $lowestDescription = 'Menunjukkan penguasaan yang memadai dalam seluruh Tujuan Pembelajaran.';
                 }
             }
         }
@@ -180,15 +180,15 @@ class CbtGradingService
         return GradeFinalScore::updateOrCreate(
             [
                 'enrollment_id' => $enrollmentId,
-                'subject_id'    => $subjectId,
+                'subject_id' => $subjectId,
             ],
             [
-                'formative_avg'                => round($formativeAvg, 2),
-                'sumative_slm_avg'             => round($sumativeSlmAvg, 2),
-                'sumative_sas'                 => round($sumativeSas, 2),
-                'final_score'                  => $finalScore,
+                'formative_avg' => round($formativeAvg, 2),
+                'sumative_slm_avg' => round($sumativeSlmAvg, 2),
+                'sumative_sas' => round($sumativeSas, 2),
+                'final_score' => $finalScore,
                 'highest_achieved_description' => $highestDescription,
-                'lowest_achieved_description'  => $lowestDescription,
+                'lowest_achieved_description' => $lowestDescription,
             ]
         );
     }

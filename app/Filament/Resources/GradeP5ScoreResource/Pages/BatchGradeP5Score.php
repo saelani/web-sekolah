@@ -27,6 +27,7 @@ class BatchGradeP5Score extends Page implements HasForms
     protected static ?string $title = 'Input Batch Nilai P5';
 
     public ?array $filterData = [];
+
     public ?array $scoresData = [];
 
     public function mount(): void
@@ -62,7 +63,9 @@ class BatchGradeP5Score extends Page implements HasForms
                             ->label('Sub-elemen P5')
                             ->options(function (Get $get) {
                                 $projectId = $get('p5_project_id');
-                                if (!$projectId) return [];
+                                if (! $projectId) {
+                                    return [];
+                                }
 
                                 return P5Subelement::where('p5_project_id', $projectId)
                                     ->pluck('subelement_name', 'id');
@@ -105,10 +108,10 @@ class BatchGradeP5Score extends Page implements HasForms
                                 Forms\Components\Select::make('score')
                                     ->label('Capaian P5')
                                     ->options([
-                                        'BB'  => 'Belum Berkembang (BB)',
-                                        'MB'  => 'Mulai Berkembang (MB)',
+                                        'BB' => 'Belum Berkembang (BB)',
+                                        'MB' => 'Mulai Berkembang (MB)',
                                         'BSH' => 'Berkembang Sesuai Harapan (BSH)',
-                                        'SB'  => 'Sangat Berkembang (SB)',
+                                        'SB' => 'Sangat Berkembang (SB)',
                                     ])
                                     ->required()
                                     ->columnSpan(2),
@@ -130,8 +133,9 @@ class BatchGradeP5Score extends Page implements HasForms
         $classId = $this->filterData['class_id'] ?? null;
         $subelementId = $this->filterData['p5_subelement_id'] ?? null;
 
-        if (!$classId || !$subelementId) {
+        if (! $classId || ! $subelementId) {
             $this->scoresData = ['scores' => []];
+
             return;
         }
 
@@ -150,8 +154,8 @@ class BatchGradeP5Score extends Page implements HasForms
         foreach ($enrollments as $enrollment) {
             $scoresList[] = [
                 'enrollment_id' => $enrollment->id,
-                'student_name'  => $enrollment->student->name ?? '-',
-                'score'         => $existingScores[$enrollment->id] ?? 'BSH',
+                'student_name' => $enrollment->student->name ?? '-',
+                'score' => $existingScores[$enrollment->id] ?? 'BSH',
             ];
         }
 
@@ -173,7 +177,7 @@ class BatchGradeP5Score extends Page implements HasForms
         foreach ($scoresState['scores'] as $item) {
             GradeP5Score::updateOrCreate(
                 [
-                    'enrollment_id'    => $item['enrollment_id'],
+                    'enrollment_id' => $item['enrollment_id'],
                     'p5_subelement_id' => $subelementId,
                 ],
                 [
@@ -186,7 +190,7 @@ class BatchGradeP5Score extends Page implements HasForms
             ->title('Berhasil Menyimpan Nilai P5!')
             ->success()
             ->send();
-        
+
         $this->redirect(GradeP5ScoreResource::getUrl('index'));
     }
 }

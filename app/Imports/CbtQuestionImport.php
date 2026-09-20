@@ -29,10 +29,10 @@ class CbtQuestionImport implements ToModel, WithHeadingRow
 
         // 2. Buat Record Soal (CbtQuestion)
         $question = CbtQuestion::create([
-            'cbt_exam_id'   => $this->cbtExamId,
+            'cbt_exam_id' => $this->cbtExamId,
             'question_text' => $questionText,
-            'type'          => $type,
-            'score_weight'  => $weight,
+            'type' => $type,
+            'score_weight' => $weight,
         ]);
 
         // 3. Jika Pilihan Ganda, tambahkan Opsi Jawaban lewat relasi Eloquent
@@ -54,7 +54,7 @@ class CbtQuestionImport implements ToModel, WithHeadingRow
                 // Menggunakan relasi $question->options() agar otomatis menggunakan model yang tepat
                 $question->options()->create([
                     'option_text' => (string) $optionText,
-                    'is_correct'  => ($key === $kunciJawaban),
+                    'is_correct' => ($key === $kunciJawaban),
                 ]);
             }
         }

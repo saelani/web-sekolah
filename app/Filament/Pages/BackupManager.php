@@ -29,7 +29,7 @@ class BackupManager extends Page
     public static function canAccess(): bool
     {
         $user = Auth::user();
-        
+
         // Ambil role dari property user / teacher
         $userRole = $user->role ?? $user->role_type ?? $user->teacher?->role_type ?? '';
 
@@ -54,10 +54,10 @@ class BackupManager extends Page
                     $dbUser = config('database.connections.mysql.username');
                     $dbPass = config('database.connections.mysql.password');
 
-                    $fileName = "backup-full-database-" . date('Y-m-d_H-i-s') . ".sql";
-                    $filePath = storage_path("app/" . $fileName);
+                    $fileName = 'backup-full-database-'.date('Y-m-d_H-i-s').'.sql';
+                    $filePath = storage_path('app/'.$fileName);
 
-                    if (!file_exists(storage_path('app'))) {
+                    if (! file_exists(storage_path('app'))) {
                         mkdir(storage_path('app'), 0755, true);
                     }
 
@@ -74,14 +74,14 @@ class BackupManager extends Page
 
                     exec($command, $output, $returnVar);
 
-                    if ($returnVar !== 0 || !file_exists($filePath) || filesize($filePath) === 0) {
+                    if ($returnVar !== 0 || ! file_exists($filePath) || filesize($filePath) === 0) {
                         if (file_exists($filePath)) {
                             @unlink($filePath);
                         }
 
                         Notification::make()
                             ->title('Gagal Export Database')
-                            ->body(!empty($output) ? implode(' ', $output) : 'Perintah mysqldump gagal dieksekusi.')
+                            ->body(! empty($output) ? implode(' ', $output) : 'Perintah mysqldump gagal dieksekusi.')
                             ->danger()
                             ->send();
 
@@ -108,10 +108,11 @@ class BackupManager extends Page
                 ->modalDescription('⚠️ PERHATIAN: Memulihkan database akan MENIMPA SELURUH DATA saat ini.')
                 ->requiresConfirmation()
                 ->action(function (array $data) {
-                    $filePath = storage_path('app/public/' . $data['backup_file']);
+                    $filePath = storage_path('app/public/'.$data['backup_file']);
 
-                    if (!file_exists($filePath)) {
+                    if (! file_exists($filePath)) {
                         Notification::make()->title('File tidak ditemukan.')->danger()->send();
+
                         return;
                     }
 
@@ -139,7 +140,7 @@ class BackupManager extends Page
                     } else {
                         Notification::make()
                             ->title('Gagal Restore Database')
-                            ->body(!empty($output) ? implode(' ', $output) : 'Format SQL tidak cocok.')
+                            ->body(! empty($output) ? implode(' ', $output) : 'Format SQL tidak cocok.')
                             ->danger()
                             ->send();
                     }

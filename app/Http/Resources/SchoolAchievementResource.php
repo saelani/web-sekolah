@@ -21,7 +21,7 @@ class SchoolAchievementResource extends JsonResource
             'level' => $this->level,
             'winner_name' => $this->winner_name,
             'achievement_date' => $this->achievement_date?->format('d M Y'),
-            'image_url' => $this->image_path ? asset('storage/' . $this->image_path) : null,
+            'image_url' => $this->image_path ? asset('storage/'.$this->image_path) : null,
         ];
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\StudentSavingResource\Pages;
@@ -48,7 +49,7 @@ class StudentSavingResource extends Resource
                         Forms\Components\Select::make('type')
                             ->label('Jenis Transaksi')
                             ->options([
-                                'in'  => 'Setor (Masuk)',
+                                'in' => 'Setor (Masuk)',
                                 'out' => 'Tarik (Keluar)',
                             ])
                             ->default('in')
@@ -89,11 +90,11 @@ class StudentSavingResource extends Resource
                     ->label('Jenis')
                     ->colors([
                         'success' => 'in',
-                        'danger'  => 'out',
+                        'danger' => 'out',
                     ])
                     ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'in'    => 'Setor',
-                        'out'   => 'Tarik',
+                        'in' => 'Setor',
+                        'out' => 'Tarik',
                         default => $state,
                     }),
 
@@ -115,7 +116,7 @@ class StudentSavingResource extends Resource
                 Tables\Filters\SelectFilter::make('type')
                     ->label('Jenis Transaksi')
                     ->options([
-                        'in'  => 'Setor',
+                        'in' => 'Setor',
                         'out' => 'Tarik',
                     ]),
             ])
@@ -153,10 +154,10 @@ class StudentSavingResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'        => Pages\ListStudentSavings::route('/'),
-            'create'       => Pages\CreateStudentSaving::route('/create'),
+            'index' => Pages\ListStudentSavings::route('/'),
+            'create' => Pages\CreateStudentSaving::route('/create'),
             'batch-saving' => Pages\BatchStudentSaving::route('/batch'),
-            'edit'         => Pages\EditStudentSaving::route('/{record}/edit'),
+            'edit' => Pages\EditStudentSaving::route('/{record}/edit'),
         ];
     }
 }
