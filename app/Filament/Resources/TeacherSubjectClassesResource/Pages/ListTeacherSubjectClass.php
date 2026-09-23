@@ -11,7 +11,7 @@ use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 
-class ListTeacherSubjectClasses extends ListRecords
+class ListTeacherSubjectClass extends ListRecords
 {
     protected static string $resource = TeacherSubjectClassesResource::class;
 

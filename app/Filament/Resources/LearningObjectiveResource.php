@@ -13,7 +13,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
-class LearningObjectiveResource extends Resource
+class LearningObjectiveResource extends BaseResource
 {
     protected static ?string $model = LearningObjective::class;
 

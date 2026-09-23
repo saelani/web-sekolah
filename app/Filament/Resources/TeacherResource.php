@@ -9,14 +9,16 @@ use App\Traits\HasAdminOrHeadmasterAccess;
 use App\Traits\HasRoleScope;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Auth;
+// 1. Hapus 'use Filament\Resources\Resource;'
+// 2. Hapus 'use Illuminate\Database\Eloquent\Builder;' karena getEloquentQuery() akan dihandle BaseResource
+// 3. Hapus 'use Illuminate\Support\Facades\Auth;' 
 
-class TeacherResource extends Resource
+class TeacherResource extends BaseResource // 4. Ubah extends Resource menjadi BaseResource
 {
+    // Jika BaseResource sudah mencakup role access, 2 trait ini opsional. 
+    // Namun kita biarkan saja agar tidak mengganggu sistem lain jika ada logic khusus di dalamnya.
     use HasAdminOrHeadmasterAccess;
     use HasRoleScope;
 
@@ -86,7 +88,6 @@ class TeacherResource extends Resource
                             ->maxLength(16)
                             ->placeholder('16 digit NUPTK'),
 
-                        // DIPASTIKAN SESUAI DENGAN ENUM ('L', 'P') DI DATABASE
                         Forms\Components\Select::make('gender')
                             ->label('Jenis Kelamin')
                             ->options([
@@ -108,7 +109,7 @@ class TeacherResource extends Resource
                         Forms\Components\FileUpload::make('photo_path')
                             ->label('Foto Profil')
                             ->image()
-                            ->disk('public') // Menyimpan file ke storage/app/public/teachers-photos
+                            ->disk('public')
                             ->directory('teachers-photos')
                             ->visibility('public')
                             ->imageEditor()
@@ -128,7 +129,7 @@ class TeacherResource extends Resource
             ->columns([
                 Tables\Columns\ImageColumn::make('photo_path')
                     ->label('Foto')
-                    ->disk('public') // Memastikan membaca dari folder storage/app/public
+                    ->disk('public')
                     ->circular()
                     ->defaultImageUrl(fn ($record) => 'https://ui-avatars.com/api/?name='.urlencode($record->name ?? 'User').'&color=7F9CF5&background=EBF4FF'),
 
@@ -183,21 +184,10 @@ class TeacherResource extends Resource
             ]);
     }
 
-    // ... di dalam class TeacherResource ...
-
-    public static function getEloquentQuery(): Builder
-    {
-        $query = parent::getEloquentQuery();
-        $user = Auth::user();
-        // admin','headmaster','teacher'
-        // Jika Super Admin, Admin, atau Headmaster -> tampilkan semua data guru
-        if ($user->hasRole(['admin', 'headmaster', 'teacher'])) {
-            return $query;
-        }
-
-        // Jika guru biasa -> hanya bisa melihat data profilnya sendiri
-        return $query->where('user_id', $user->id);
-    }
+    // 5. METHOD getEloquentQuery() DIHAPUS. 
+    // BaseResource secara otomatis akan mengeksekusi ini: 
+    // if (Schema::hasColumn($table, 'user_id')) { return $query->where($table.'.user_id', $user->id); }
+    // Sehingga Guru HANYA BISA melihat data dirinya sendiri, sementara Admin bisa melihat semuanya.
 
     public static function getPages(): array
     {

@@ -6,7 +6,7 @@ use App\Filament\Resources\TeacherSubjectClassesResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 
-class EditTeacherSubjectClasses extends EditRecord
+class EditTeacherSubjectClass extends EditRecord
 {
     protected static string $resource = TeacherSubjectClassesResource::class;
 

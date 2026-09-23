@@ -7,12 +7,12 @@ use App\Models\Enrollment;
 use App\Models\ExtracurricularScore;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+// 1. Hapus 'use Filament\Resources\Resource;'
 
-class GradeExtracurricularResource extends Resource
+class GradeExtracurricularResource extends BaseResource // 2. Ubah extends dari Resource menjadi BaseResource
 {
     protected static ?string $model = ExtracurricularScore::class;
 
@@ -24,6 +24,8 @@ class GradeExtracurricularResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
+    // 3. Method getEloquentQuery() TETAP DIPERTAHANKAN untuk Eager Loading.
+    // parent::getEloquentQuery() akan tetap mengeksekusi filter otomatis dari BaseResource.
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->with([
@@ -39,6 +41,16 @@ class GradeExtracurricularResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Penilaian Ekstrakurikuler')
                     ->schema([
+                        // 4. Tambahkan field teacher_id agar tersimpan siapa guru/pembina yang menginput nilai
+                        // (Pastikan tabel ekstrakurikuler_scores/nilai ekskul di database sudah memiliki kolom teacher_id)
+                        Forms\Components\Select::make('teacher_id')
+                            ->label('Guru Penilai / Pembina')
+                            ->relationship('teacher', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->default(fn () => auth()->user()->teacher?->id ?? auth()->user()->teacher_id)
+                            ->required(),
+
                         Forms\Components\Select::make('enrollment_id')
                             ->label('Siswa / Pendaftaran')
                             ->options(
@@ -77,6 +89,12 @@ class GradeExtracurricularResource extends Resource
     {
         return $table
             ->columns([
+                // 5. Tambahkan kolom untuk menampilkan nama guru penilai (Disembunyikan secara default)
+                Tables\Columns\TextColumn::make('teacher.name')
+                    ->label('Guru Penilai')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 Tables\Columns\TextColumn::make('enrollment.student.name')
                     ->label('Nama Siswa')
                     ->searchable()
@@ -112,7 +130,7 @@ class GradeExtracurricularResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\DeleteAction::make(), // Validasi Delete (Admin only) diurus oleh BaseResource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

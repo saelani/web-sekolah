@@ -5,6 +5,8 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\AcademicCalendarResource\Pages;
 use App\Models\AcademicCalendar;
 use App\Models\LearningObjective;
+use App\Models\Subject;
+use App\Models\TeacherSubjectClass;
 use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -13,8 +15,9 @@ use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
-class AcademicCalendarResource extends Resource
+class AcademicCalendarResource extends BaseResource
 {
     protected static ?string $model = AcademicCalendar::class;
 
@@ -26,13 +29,45 @@ class AcademicCalendarResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
+    /**
+     * Override Query Scope agar Guru hanya melihat kalender dari mapel & kelas yang diampu
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = auth()->user();
+
+        if (! $user) {
+            return $query;
+        }
+
+        if ($user->role === 'teacher') {
+            $teacherId = $user->teacher?->id ?? $user->teacher_id ?? $user->id;
+
+            $assignments = TeacherSubjectClass::where('teacher_id', $teacherId)
+                ->orWhere('teacher_id', $user->id)
+                ->get();
+
+            $subjectIds = $assignments->pluck('subject_id')->unique()->toArray();
+            $classRoomIds = $assignments->pluck('class_id')->unique()->toArray();
+
+            if (empty($subjectIds) || empty($classRoomIds)) {
+                return $query->whereRaw('1 = 0');
+            }
+
+            return $query->whereIn('subject_id', $subjectIds)
+                         ->whereIn('class_room_id', $classRoomIds);
+        }
+
+        return $query;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\Section::make('Rencana & Alokasi Waktu Pembelajaran')
                     ->headerActions([
-                        // Tombol Reset Form
                         Forms\Components\Actions\Action::make('reset_form')
                             ->label('Reset Form')
                             ->color('gray')
@@ -64,10 +99,24 @@ class AcademicCalendarResource extends Resource
                             ->default(fn () => session('last_class_room_id'))
                             ->afterStateUpdated(fn ($state) => session(['last_class_room_id' => $state])),
 
+                        // --- PILIHAN MAPEL DISESUAIKAN BERDASARKAN GURU YANG MENGAMPU ---
                         Forms\Components\Select::make('subject_id')
-                            ->relationship('subject', 'name')
                             ->label('Mata Pelajaran')
+                            ->options(function () {
+                                $user = auth()->user();
+                                if ($user->role === 'teacher') {
+                                    $teacherId = $user->teacher?->id ?? $user->teacher_id ?? $user->id;
+                                    $subjectIds = TeacherSubjectClass::where('teacher_id', $teacherId)
+                                        ->orWhere('teacher_id', $user->id)
+                                        ->pluck('subject_id');
+
+                                    return Subject::whereIn('id', $subjectIds)->pluck('name', 'id');
+                                }
+                                return Subject::pluck('name', 'id');
+                            })
                             ->required()
+                            ->searchable()
+                            ->preload()
                             ->live()
                             ->default(fn () => session('last_subject_id'))
                             ->afterStateUpdated(fn ($state) => session(['last_subject_id' => $state])),
@@ -115,7 +164,6 @@ class AcademicCalendarResource extends Resource
                             ->default(now())
                             ->minDate(fn (Get $get) => $get('start_date')),
 
-                        // --- SKENARIO PEMILIHAN JAM KE- & JUMLAH JP OTOMATIS ---
                         Forms\Components\Select::make('start_period')
                             ->label('Mulai Jam Ke-')
                             ->options([
@@ -167,9 +215,6 @@ class AcademicCalendarResource extends Resource
             ]);
     }
 
-    /**
-     * Helper Fungsi: Menghitung Otomatis Jam Mulai & Jam Selesai berdasarkan Jam Ke-
-     */
     protected static function calculatePeriodDuration(Get $get, Set $set): void
     {
         $startPeriod = (int) $get('start_period');
@@ -179,17 +224,14 @@ class AcademicCalendarResource extends Resource
             return;
         }
 
-        // Jadwal acuan Jam Ke- (Format 1 JP = 35 Menit SD + Istirahat)
         $scheduleMaster = [
             1 => ['start' => '06:30', 'end' => '07:05'],
             2 => ['start' => '07:05', 'end' => '07:40'],
             3 => ['start' => '07:40', 'end' => '08:15'],
             4 => ['start' => '08:15', 'end' => '08:50'],
-            // 08:50 - 09:05 -> Istirahat 1 (15 Menit)
             5 => ['start' => '09:05', 'end' => '09:40'],
             6 => ['start' => '09:40', 'end' => '10:15'],
             7 => ['start' => '10:15', 'end' => '10:50'],
-            // 10:50 - 11:15 -> Istirahat 2 / Dzuhur (15 Menit)
             8 => ['start' => '11:05', 'end' => '11:40'],
             9 => ['start' => '11:40', 'end' => '12:15'],
         ];
@@ -252,12 +294,27 @@ class AcademicCalendarResource extends Resource
                     })
                     ->formatStateUsing(fn (string $state): string => strtoupper($state)),
 
-                // --- TAMPILKAN TUJUAN PEMBELAJARAN (TP) MELEWATI RELASI ---
                 Tables\Columns\TextColumn::make('learningObjective.description')
                     ->label('Tujuan Pembelajaran (TP)')
                     ->wrap()
-                    ->placeholder('-') // Ditampilkan jika TP kosong (misal kegiatan Libur/Event)
+                    ->placeholder('-')
                     ->searchable(),
+            ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('subject_id')
+                    ->label('Filter Mata Pelajaran')
+                    ->options(function () {
+                        $user = auth()->user();
+                        if ($user->role === 'teacher') {
+                            $teacherId = $user->teacher?->id ?? $user->teacher_id ?? $user->id;
+                            $subjectIds = TeacherSubjectClass::where('teacher_id', $teacherId)
+                                ->orWhere('teacher_id', $user->id)
+                                ->pluck('subject_id');
+
+                            return Subject::whereIn('id', $subjectIds)->pluck('name', 'id');
+                        }
+                        return Subject::pluck('name', 'id');
+                    }),
             ])
             ->defaultSort('start_date', 'desc');
     }

@@ -10,7 +10,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class CbtExamSessionResource extends Resource
+class CbtExamSessionResource extends BaseResource
 {
     protected static ?string $model = CbtExamSession::class;
 

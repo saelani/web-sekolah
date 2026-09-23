@@ -4,6 +4,8 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\TeacherSubjectClassesResource\Pages;
 use App\Models\TeacherSubjectClass;
+use App\Models\ClassRoom;
+use App\Models\Subject;
 use App\Traits\HasRoleScope;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -52,9 +54,10 @@ class TeacherSubjectClassesResource extends Resource
                             ->preload()
                             ->required(),
 
+                        // SESUAIKAN DI SINI
                         Forms\Components\Select::make('class_id')
                             ->label('Kelas / Rombel')
-                            ->relationship('class', 'name')
+                            ->relationship('classRoom', 'name')
                             ->searchable()
                             ->preload()
                             ->required(),
@@ -87,7 +90,8 @@ class TeacherSubjectClassesResource extends Resource
                     ->searchable()
                     ->default('-'),
 
-                Tables\Columns\TextColumn::make('class.name')
+                // SESUAIKAN DI SINI
+                Tables\Columns\TextColumn::make('classRoom.name')
                     ->label('Kelas')
                     ->sortable()
                     ->searchable()
@@ -102,9 +106,10 @@ class TeacherSubjectClassesResource extends Resource
                     ->label('Filter Mata Pelajaran')
                     ->relationship('subject', 'name'),
 
+                // SESUAIKAN DI SINI
                 Tables\Filters\SelectFilter::make('class_id')
                     ->label('Filter Kelas')
-                    ->relationship('class', 'name'),
+                    ->relationship('classRoom', 'name'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make()->color('warning'),
@@ -115,9 +120,9 @@ class TeacherSubjectClassesResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListTeacherSubjectClasses::route('/'),
-            'create' => Pages\CreateTeacherSubjectClasses::route('/create'),
-            'edit' => Pages\EditTeacherSubjectClasses::route('/{record}/edit'),
+            'index' => Pages\ListTeacherSubjectClass::route('/'),
+            'create' => Pages\CreateTeacherSubjectClass::route('/create'),
+            'edit' => Pages\EditTeacherSubjectClass::route('/{record}/edit'),
         ];
     }
 }

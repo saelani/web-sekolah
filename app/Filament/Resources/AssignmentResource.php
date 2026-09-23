@@ -4,13 +4,16 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\AssignmentResource\Pages;
 use App\Models\Assignment;
+use App\Models\Subject;
+use App\Models\TeacherSubjectClass;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
-class AssignmentResource extends Resource
+class AssignmentResource extends BaseResource
 {
     protected static ?string $model = Assignment::class;
 
@@ -23,6 +26,39 @@ class AssignmentResource extends Resource
     protected static ?string $modelLabel = 'Tugas';
 
     protected static ?int $navigationSort = 5;
+
+    /**
+     * Override Query Scope agar Guru hanya melihat tugas dari mapel & kelas yang diampu
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = auth()->user();
+
+        if (! $user) {
+            return $query;
+        }
+
+        if ($user->role === 'teacher') {
+            $teacherId = $user->teacher?->id ?? $user->teacher_id ?? $user->id;
+
+            $assignments = TeacherSubjectClass::where('teacher_id', $teacherId)
+                ->orWhere('teacher_id', $user->id)
+                ->get();
+
+            $subjectIds = $assignments->pluck('subject_id')->unique()->toArray();
+            $classRoomIds = $assignments->pluck('class_id')->unique()->toArray();
+
+            if (empty($subjectIds) || empty($classRoomIds)) {
+                return $query->whereRaw('1 = 0');
+            }
+
+            return $query->whereIn('subject_id', $subjectIds)
+                         ->whereIn('class_id', $classRoomIds);
+        }
+
+        return $query;
+    }
 
     public static function form(Form $form): Form
     {
@@ -37,9 +73,21 @@ class AssignmentResource extends Resource
                             ->preload()
                             ->required(),
 
+                        // --- PILIHAN MAPEL DISESUAIKAN BERDASARKAN GURU YANG MENGAMPU ---
                         Forms\Components\Select::make('subject_id')
                             ->label('Mata Pelajaran')
-                            ->relationship('subject', 'name')
+                            ->options(function () {
+                                $user = auth()->user();
+                                if ($user->role === 'teacher') {
+                                    $teacherId = $user->teacher?->id ?? $user->teacher_id ?? $user->id;
+                                    $subjectIds = TeacherSubjectClass::where('teacher_id', $teacherId)
+                                        ->orWhere('teacher_id', $user->id)
+                                        ->pluck('subject_id');
+
+                                    return Subject::whereIn('id', $subjectIds)->pluck('name', 'id');
+                                }
+                                return Subject::pluck('name', 'id');
+                            })
                             ->searchable()
                             ->preload()
                             ->required(),
@@ -93,6 +141,22 @@ class AssignmentResource extends Resource
                 Tables\Filters\SelectFilter::make('class_id')
                     ->label('Kelas')
                     ->relationship('classRoom', 'name'),
+
+                // --- FILTER MATA PELAJARAN DISESUAIKAN BERDASARKAN GURU ---
+                Tables\Filters\SelectFilter::make('subject_id')
+                    ->label('Filter Mata Pelajaran')
+                    ->options(function () {
+                        $user = auth()->user();
+                        if ($user->role === 'teacher') {
+                            $teacherId = $user->teacher?->id ?? $user->teacher_id ?? $user->id;
+                            $subjectIds = TeacherSubjectClass::where('teacher_id', $teacherId)
+                                ->orWhere('teacher_id', $user->id)
+                                ->pluck('subject_id');
+
+                            return Subject::whereIn('id', $subjectIds)->pluck('name', 'id');
+                        }
+                        return Subject::pluck('name', 'id');
+                    }),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

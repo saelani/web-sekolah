@@ -9,12 +9,12 @@ use App\Models\GradeSumatif;
 use App\Models\SumativeScope;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+// 1. Hapus 'use Filament\Resources\Resource;'
 
-class GradeSumatifResource extends Resource
+class GradeSumatifResource extends BaseResource // 2. Ubah extends dari Resource menjadi BaseResource
 {
     protected static ?string $model = GradeSumatif::class;
 
@@ -26,6 +26,9 @@ class GradeSumatifResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    // 3. Method getEloquentQuery() TETAP DIPERTAHANKAN
+    // Alasan: Untuk Eager Loading (optimasi query). 
+    // parent::getEloquentQuery() akan tetap mengeksekusi filter otomatis dari BaseResource!
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->with([
@@ -42,6 +45,16 @@ class GradeSumatifResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Penilaian Sumatif Siswa')
                     ->schema([
+                        // 4. Tambahkan field teacher_id agar tersimpan siapa guru yang menginput nilai ini
+                        // (Pastikan tabel grade_sumatifs di database Anda sudah memiliki kolom teacher_id)
+                        Forms\Components\Select::make('teacher_id')
+                            ->label('Guru Penilai')
+                            ->relationship('teacher', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->default(fn () => auth()->user()->teacher?->id ?? auth()->user()->teacher_id)
+                            ->required(),
+
                         Forms\Components\Select::make('enrollment_id')
                             ->label('Siswa / Pendaftaran')
                             ->options(
@@ -96,6 +109,12 @@ class GradeSumatifResource extends Resource
     {
         return $table
             ->columns([
+                // 5. Tambahkan kolom untuk menampilkan nama guru penilai (Disembunyikan secara default)
+                Tables\Columns\TextColumn::make('teacher.name')
+                    ->label('Guru Penilai')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 Tables\Columns\TextColumn::make('enrollment.student.name')
                     ->label('Nama Siswa')
                     ->searchable()
@@ -157,7 +176,7 @@ class GradeSumatifResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\DeleteAction::make(), // Keamanan tombol delete dari BaseResource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

@@ -6,11 +6,11 @@ use App\Filament\Resources\ExtracurricularResource\Pages;
 use App\Models\Extracurricular;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+// 1. Hapus 'use Filament\Resources\Resource;'
 
-class ExtracurricularResource extends Resource
+class ExtracurricularResource extends BaseResource // 2. Ubah extends dari Resource menjadi BaseResource
 {
     protected static ?string $model = Extracurricular::class;
 
@@ -28,13 +28,25 @@ class ExtracurricularResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Informasi Ekstrakurikuler')
                     ->schema([
+                        // 3. Tambahkan field teacher_id untuk melacak pembuat/guru yang mengelola
+                        // (Pastikan tabel extracurriculars di database sudah memiliki kolom teacher_id)
+                        Forms\Components\Select::make('teacher_id')
+                            ->label('Guru Penanggung Jawab / Pembina Utama')
+                            ->relationship('teacher', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->default(fn () => auth()->user()->teacher?->id ?? auth()->user()->teacher_id)
+                            ->required()
+                            ->columnSpanFull(),
+
                         Forms\Components\TextInput::make('name')
                             ->label('Nama Ekstrakurikuler')
                             ->required()
                             ->maxLength(255),
 
                         Forms\Components\TextInput::make('instructor_name')
-                            ->label('Nama Pembina / Pelatih')
+                            ->label('Nama Pelatih Luar (Opsional)')
+                            ->helperText('Isi jika pelatih bukan dari kalangan guru.')
                             ->maxLength(255),
                     ])->columns(2),
             ]);
@@ -44,13 +56,19 @@ class ExtracurricularResource extends Resource
     {
         return $table
             ->columns([
+                // 4. Tambahkan kolom untuk menampilkan nama guru penanggung jawab (Disembunyikan secara default)
+                Tables\Columns\TextColumn::make('teacher.name')
+                    ->label('Guru Penanggung Jawab')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nama Ekstrakurikuler')
                     ->searchable()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('instructor_name')
-                    ->label('Pembina / Pelatih')
+                    ->label('Pelatih Luar')
                     ->searchable()
                     ->sortable(),
 

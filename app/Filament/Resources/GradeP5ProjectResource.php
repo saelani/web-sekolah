@@ -6,11 +6,11 @@ use App\Filament\Resources\GradeP5ProjectResource\Pages;
 use App\Models\P5Project;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+// 1. Hapus 'use Filament\Resources\Resource;' karena kita akan menggunakan BaseResource
 
-class GradeP5ProjectResource extends Resource
+class GradeP5ProjectResource extends BaseResource // 2. Ubah dari Resource menjadi BaseResource
 {
     protected static ?string $model = P5Project::class;
 
@@ -28,6 +28,15 @@ class GradeP5ProjectResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Master Data Projek P5')
                     ->schema([
+                        // 3. Tambahkan field teacher_id agar otomatis merekam guru yang login saat pembuatan
+                        Forms\Components\Select::make('teacher_id')
+                            ->label('Guru Pengampu')
+                            ->relationship('teacher', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->default(fn () => auth()->user()->teacher?->id ?? auth()->user()->teacher_id)
+                            ->required(),
+
                         Forms\Components\Select::make('academic_year_id')
                             ->relationship('academicYear', 'year') // Menggunakan 'year'
                             ->label('Tahun Ajaran')
@@ -64,6 +73,12 @@ class GradeP5ProjectResource extends Resource
     {
         return $table
             ->columns([
+                // 4. (Opsional) Tambahkan kolom guru di tabel, disembunyikan secara default
+                Tables\Columns\TextColumn::make('teacher.name')
+                    ->label('Guru')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 Tables\Columns\TextColumn::make('academicYear.year') // Menggunakan 'year'
                     ->label('Tahun Ajaran')
                     ->sortable(),
@@ -85,6 +100,15 @@ class GradeP5ProjectResource extends Resource
                 Tables\Filters\SelectFilter::make('academic_year_id')
                     ->relationship('academicYear', 'year') // Menggunakan 'year'
                     ->label('Tahun Ajaran'),
+            ])
+            ->actions([
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(), // Keamanan tombol delete sudah diurus otomatis oleh BaseResource
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
             ]);
     }
 

@@ -12,7 +12,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class MaterialResource extends Resource
+class MaterialResource extends BaseResource
 {
     protected static ?string $model = Material::class;
 
@@ -41,14 +41,37 @@ class MaterialResource extends Resource
 
                         Forms\Components\Select::make('subject')
                             ->label('Mata Pelajaran')
-                            ->options(Subject::pluck('name', 'name'))
+                            ->options(function () {
+                                $user = auth()->user();
+                                if ($user->role === 'teacher' && $user->teacher) {
+                                    return $user->teacher->teacherSubjectClasses()
+                                        ->with('subject')
+                                        ->get()
+                                        ->pluck('subject.name', 'subject.name')
+                                        ->filter();
+                                }
+                                return Subject::pluck('name', 'name');
+                            })
                             ->searchable()
                             ->preload()
                             ->required(),
 
                         Forms\Components\Select::make('class_level')
                             ->label('Kelas')
-                            ->options(ClassRoom::pluck('name', 'name'))
+                            ->options(function () {
+                                $user = auth()->user();
+                                if ($user->role === 'teacher' && $user->teacher) {
+                                    $homeroom = $user->teacher->homeroomClasses()->pluck('name', 'name')->toArray();
+                                    $subjectClass = $user->teacher->teacherSubjectClasses()
+                                        ->with('classRoom')
+                                        ->get()
+                                        ->pluck('classRoom.name', 'classRoom.name')
+                                        ->filter()
+                                        ->toArray();
+                                    return array_merge($homeroom, $subjectClass);
+                                }
+                                return ClassRoom::pluck('name', 'name');
+                            })
                             ->searchable()
                             ->preload()
                             ->required(),

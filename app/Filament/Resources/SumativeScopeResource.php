@@ -6,11 +6,12 @@ use App\Filament\Resources\SumativeScopeResource\Pages;
 use App\Models\SumativeScope;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+// 1. Hapus 'use Filament\Resources\Resource;' 
+// Karena BaseResource sudah berada di namespace yang sama (App\Filament\Resources), kita bisa langsung meng-extend-nya.
 
-class SumativeScopeResource extends Resource
+class SumativeScopeResource extends BaseResource // 2. UBAH extends Resource menjadi BaseResource
 {
     protected static ?string $model = SumativeScope::class;
 
@@ -22,12 +23,28 @@ class SumativeScopeResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
+    // 3. METHOD getEloquentQuery() TIDAK PERLU DITULIS LAGI DI SINI
+    // BaseResource Anda sudah otomatis mengecek:
+    // - Apakah tabel ini punya kolom 'teacher_id'?
+    // - Jika tidak, apakah model ini punya relasi 'subject' yang terhubung ke TeacherSubjectClass?
+    // Semua filter keamanan sudah di-handle oleh BaseResource!
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\Section::make('Informasi Lingkup Materi / Bab')
                     ->schema([
+                        // Jika di tabel database sumative_scopes Anda menambahkan kolom 'teacher_id', 
+                        // biarkan field ini. Jika tidak, BaseResource tetap akan mem-filter berdasarkan relasi 'subject_id'
+                        Forms\Components\Select::make('teacher_id')
+                            ->label('Guru Pengampu')
+                            ->relationship('teacher', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->default(fn () => auth()->user()->teacher?->id ?? auth()->user()->teacher_id)
+                            ->required(),
+
                         Forms\Components\Select::make('subject_id')
                             ->relationship('subject', 'name')
                             ->label('Mata Pelajaran')
@@ -56,7 +73,8 @@ class SumativeScopeResource extends Resource
                             ->label('Nama Lingkup Materi / Bab')
                             ->placeholder('Contoh: Bab 1 - Bilangan Cacat')
                             ->required()
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->columnSpanFull(),
                     ])->columns(2),
             ]);
     }
@@ -65,6 +83,11 @@ class SumativeScopeResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('teacher.name')
+                    ->label('Guru')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true), // Sembunyikan default agar tabel tidak penuh
+
                 Tables\Columns\TextColumn::make('subject.name')
                     ->label('Mata Pelajaran')
                     ->searchable()

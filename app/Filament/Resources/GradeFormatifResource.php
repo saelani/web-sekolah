@@ -26,9 +26,9 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
 
-class GradeFormatifResource extends Resource
+class GradeFormatifResource extends BaseResource
 {
-    use HasRoleScope;
+    // use HasRoleScope;
 
     protected static ?string $model = GradeFormatif::class;
 

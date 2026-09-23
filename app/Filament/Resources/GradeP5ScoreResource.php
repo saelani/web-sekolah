@@ -6,11 +6,11 @@ use App\Filament\Resources\GradeP5ScoreResource\Pages;
 use App\Models\GradeP5Score;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+// 1. Hapus 'use Filament\Resources\Resource;'
 
-class GradeP5ScoreResource extends Resource
+class GradeP5ScoreResource extends BaseResource // 2. Ubah extends dari Resource menjadi BaseResource
 {
     protected static ?string $model = GradeP5Score::class;
 
@@ -28,6 +28,16 @@ class GradeP5ScoreResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Penilaian P5 Siswa')
                     ->schema([
+                        // 3. Tambahkan field teacher_id agar tersimpan siapa guru yang menginput nilai ini
+                        // (Pastikan tabel grade_p5_scores di database Anda sudah memiliki kolom teacher_id)
+                        Forms\Components\Select::make('teacher_id')
+                            ->label('Guru Penilai')
+                            ->relationship('teacher', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->default(fn () => auth()->user()->teacher?->id ?? auth()->user()->teacher_id)
+                            ->required(),
+
                         Forms\Components\Select::make('enrollment_id')
                             ->relationship('enrollment.student', 'name')
                             ->label('Siswa / Pendaftaran')
@@ -57,6 +67,12 @@ class GradeP5ScoreResource extends Resource
     {
         return $table
             ->columns([
+                // 4. Tambahkan kolom untuk menampilkan nama guru penilai (Disembunyikan secara default)
+                Tables\Columns\TextColumn::make('teacher.name')
+                    ->label('Guru Penilai')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 Tables\Columns\TextColumn::make('enrollment.student.name')
                     ->label('Nama Siswa')
                     ->searchable()
@@ -94,6 +110,15 @@ class GradeP5ScoreResource extends Resource
                 Tables\Filters\SelectFilter::make('class_id')
                     ->label('Kelas')
                     ->relationship('enrollment.class', 'name'),
+            ])
+            ->actions([
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
             ]);
     }
 
@@ -102,7 +127,7 @@ class GradeP5ScoreResource extends Resource
         return [
             'index' => Pages\ListGradeP5Scores::route('/'),
             'create' => Pages\CreateGradeP5Score::route('/create'),
-            'batch' => Pages\BatchGradeP5Score::route('/batch'),
+            'batch' => Pages\BatchGradeP5Score::route('/batch'), // Halaman custom Batch Insert tetap aman
             'edit' => Pages\EditGradeP5Score::route('/{record}/edit'),
         ];
     }

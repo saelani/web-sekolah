@@ -7,7 +7,7 @@ use App\Models\ClassRoom;
 use App\Models\GradeFinalScore;
 use App\Models\Subject;
 use App\Services\GradeCalculationService;
-use App\Traits\HasRoleScope;
+
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -21,9 +21,9 @@ use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
-class GradeFinalScoreResource extends Resource
+class GradeFinalScoreResource extends BaseResource
 {
-    use HasRoleScope; // <-- getEloquentQuery() otomatis ter-override dari Trait!
+    // use HasRoleScope; // <-- getEloquentQuery() otomatis ter-override dari Trait!
 
     protected static ?string $model = GradeFinalScore::class;
 

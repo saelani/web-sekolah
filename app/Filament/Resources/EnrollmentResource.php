@@ -7,12 +7,12 @@ use App\Models\Enrollment;
 use App\Traits\HasRoleScope;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+// 1. Hapus 'use Filament\Resources\Resource;'
 
-class EnrollmentResource extends Resource
+class EnrollmentResource extends BaseResource // 2. Ubah dari Resource menjadi BaseResource
 {
     use HasRoleScope;
 
@@ -26,6 +26,25 @@ class EnrollmentResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
+    // 3. Tambahkan getEloquentQuery di sini untuk memfilter data tabel berdasarkan Wali Kelas
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = auth()->user();
+
+        // Jika bukan guru (misal Admin / Kepala Sekolah), kembalikan query utuh
+        if (! $user || $user->role !== 'teacher') {
+            return $query;
+        }
+
+        $teacherId = $user->teacher?->id ?? $user->teacher_id ?? $user->id;
+
+        // Jika Guru, tampilkan siswa yang ada di kelas miliknya saja (Wali Kelas)
+        return $query->whereHas('class', function ($q) use ($teacherId) {
+            $q->where('teacher_id', $teacherId);
+        });
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -34,7 +53,7 @@ class EnrollmentResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('academic_year_id')
                             ->label('Tahun Ajaran')
-                            ->relationship('academicYear', 'year') // Sesuaikan kolom ke 'year'
+                            ->relationship('academicYear', 'year')
                             ->searchable()
                             ->preload()
                             ->required(),
@@ -46,11 +65,11 @@ class EnrollmentResource extends Resource
                                 titleAttribute: 'name',
                                 modifyQueryUsing: function ($query) {
                                     $user = auth()->user();
-                                    $userRole = $user->role ?? $user->role_type ?? '';
-
-                                    // Jika yang login Guru/Wali Kelas, kunci hanya pada kelas yang diajar
-                                    if (in_array($userRole, ['teacher', 'class_teacher', 'subject_teacher']) && $user->teacher) {
-                                        return $query->where('teacher_id', $user->teacher->id);
+                                    
+                                    // 4. Perbaikan logika filter pada Dropdown Kelas
+                                    if ($user && $user->role === 'teacher') {
+                                        $teacherId = $user->teacher?->id ?? $user->teacher_id ?? $user->id;
+                                        return $query->where('teacher_id', $teacherId);
                                     }
 
                                     return $query;
@@ -98,8 +117,6 @@ class EnrollmentResource extends Resource
                     ->sortable()
                     ->default('-'),
             ])
-            // ...
-
             ->filters([
                 Tables\Filters\SelectFilter::make('class_id')
                     ->label('Filter Kelas')
@@ -107,30 +124,20 @@ class EnrollmentResource extends Resource
 
                 Tables\Filters\SelectFilter::make('academic_year_id')
                     ->label('Filter Tahun Ajaran')
-                    ->relationship('academicYear', 'year'), // Sesuaikan kolom ke 'year'
+                    ->relationship('academicYear', 'year'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make()->color('warning'),
                 Tables\Actions\DeleteAction::make()->color('danger'),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
             ]);
     }
 
-    // Tambahkan method ini di dalam class ListEnrollments
-    protected function getTableQuery(): Builder
-    {
-        $query = parent::getTableQuery();
-        $user = auth()->user();
-        $userRole = $user->role ?? $user->role_type ?? '';
-
-        // Jika yang login Guru/Wali Kelas, tampilkan siswa yang ada di kelas miliknya saja
-        if (in_array($userRole, ['teacher', 'class_teacher', 'subject_teacher']) && $user->teacher) {
-            return $query->whereHas('class', function ($q) use ($user) {
-                $q->where('teacher_id', $user->teacher->id);
-            });
-        }
-
-        return $query;
-    }
+    // 5. Method getTableQuery() yang salah tempat SUDAH DIHAPUS.
 
     public static function getPages(): array
     {

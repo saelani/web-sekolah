@@ -6,7 +6,7 @@ use App\Exports\StudentsExport;
 use App\Filament\Resources\StudentResource\Pages;
 use App\Imports\StudentsImport;
 use App\Models\Student;
-use App\Traits\HasRoleScope;
+use App\Traits\HasAdminOrHeadmasterAccess;
 use App\Traits\HasUniversalExportImport;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Hash;
 
 class StudentResource extends Resource
 {
-    use HasRoleScope;
+    use HasAdminOrHeadmasterAccess;
     use HasUniversalExportImport;
 
     protected static ?string $model = Student::class;
@@ -232,8 +232,11 @@ class StudentResource extends Resource
                     ->relationship('classRoom', 'name'),
             ])
             ->headerActions([
-                static::getImportAction(StudentsImport::class),
-                static::getExportAction(StudentsExport::class, 'data-siswa-'.date('Y-m-d').'.xlsx'),
+                // Gunakan operator spread (...) dan ternary condition untuk mengecek role admin
+                ...(auth()->user()?->role === 'admin' ? [
+                    static::getImportAction(StudentsImport::class), 
+                    static::getExportAction(StudentsExport::class, 'data-siswa-'.date('Y-m-d').'.xlsx'),
+                ] : []),
             ])
             ->actions([
                 Tables\Actions\EditAction::make()->color('warning'),

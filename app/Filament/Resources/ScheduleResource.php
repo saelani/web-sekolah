@@ -4,6 +4,8 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ScheduleResource\Pages;
 use App\Models\Schedule;
+use App\Models\Subject;
+use App\Models\TeacherSubjectClass;
 use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -12,8 +14,9 @@ use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
-class ScheduleResource extends Resource
+class ScheduleResource extends BaseResource
 {
     protected static ?string $model = Schedule::class;
 
@@ -26,6 +29,39 @@ class ScheduleResource extends Resource
     protected static ?string $modelLabel = 'Jadwal';
 
     protected static ?int $navigationSort = 4;
+
+    /**
+     * Override Query Scope agar Guru hanya melihat jadwal dari mapel & kelas yang diampu
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = auth()->user();
+
+        if (! $user) {
+            return $query;
+        }
+
+        if ($user->role === 'teacher') {
+            $teacherId = $user->teacher?->id ?? $user->teacher_id ?? $user->id;
+
+            $assignments = TeacherSubjectClass::where('teacher_id', $teacherId)
+                ->orWhere('teacher_id', $user->id)
+                ->get();
+
+            $subjectIds = $assignments->pluck('subject_id')->unique()->toArray();
+            $classRoomIds = $assignments->pluck('class_id')->unique()->toArray();
+
+            if (empty($subjectIds) || empty($classRoomIds)) {
+                return $query->whereRaw('1 = 0');
+            }
+
+            return $query->whereIn('subject_id', $subjectIds)
+                         ->whereIn('class_id', $classRoomIds);
+        }
+
+        return $query;
+    }
 
     public static function form(Form $form): Form
     {
@@ -63,9 +99,21 @@ class ScheduleResource extends Resource
                             ->default(fn () => session('last_schedule_class_id'))
                             ->afterStateUpdated(fn ($state) => session(['last_schedule_class_id' => $state])),
 
+                        // --- PILIHAN MAPEL DISESUAIKAN BERDASARKAN GURU YANG MENGAMPU ---
                         Forms\Components\Select::make('subject_id')
                             ->label('Mata Pelajaran')
-                            ->relationship('subject', 'name')
+                            ->options(function () {
+                                $user = auth()->user();
+                                if ($user->role === 'teacher') {
+                                    $teacherId = $user->teacher?->id ?? $user->teacher_id ?? $user->id;
+                                    $subjectIds = TeacherSubjectClass::where('teacher_id', $teacherId)
+                                        ->orWhere('teacher_id', $user->id)
+                                        ->pluck('subject_id');
+
+                                    return Subject::whereIn('id', $subjectIds)->pluck('name', 'id');
+                                }
+                                return Subject::pluck('name', 'id');
+                            })
                             ->searchable()
                             ->preload()
                             ->required()
@@ -91,7 +139,6 @@ class ScheduleResource extends Resource
                             ->maxLength(50)
                             ->default('Ruang Kelas 5'),
 
-                        // --- SKENARIO PEMILIHAN JAM KE- & MASTER WAKTU DENGAN JEDA ISTIRAHAT ---
                         Forms\Components\Select::make('start_period')
                             ->label('Mulai Jam Ke-')
                             ->options([
@@ -99,11 +146,9 @@ class ScheduleResource extends Resource
                                 2 => 'Jam ke-2 (07:05 - 07:40)',
                                 3 => 'Jam ke-3 (07:40 - 08:15)',
                                 4 => 'Jam ke-4 (08:15 - 08:50)',
-                                // 08:50 - 09:05 -> Istirahat I (15 Menit)
                                 5 => 'Jam ke-5 (09:05 - 09:40) [Selepas Istirahat I]',
                                 6 => 'Jam ke-6 (09:40 - 10:15)',
                                 7 => 'Jam ke-7 (10:15 - 10:50)',
-                                // 10:50 - 11:05 -> Istirahat II / Dzuhur (15 Menit)
                                 8 => 'Jam ke-8 (11:05 - 11:40) [Selepas Istirahat II]',
                                 9 => 'Jam ke-9 (11:40 - 12:15)',
                             ])
@@ -129,16 +174,12 @@ class ScheduleResource extends Resource
                             })
                             ->columnSpanFull(),
 
-                        // Hidden input untuk menyimpan format jam asli ke database
                         Forms\Components\Hidden::make('start_time'),
                         Forms\Components\Hidden::make('end_time'),
                     ])->columns(3),
             ]);
     }
 
-    /**
-     * Helper: Menghitung jam mulai dan selesai secara akurat berdasarkan master waktu sekolah (termasuk jeda istirahat)
-     */
     protected static function calculateScheduleTime(Get $get, Set $set): void
     {
         $startPeriod = (int) $get('start_period');
@@ -148,17 +189,14 @@ class ScheduleResource extends Resource
             return;
         }
 
-        // Master waktu definitif sekolah dasar (memasukkan jeda istirahat 15 menit)
         $scheduleMaster = [
             1 => ['start' => '06:30:00', 'end' => '07:05:00'],
             2 => ['start' => '07:05:00', 'end' => '07:40:00'],
             3 => ['start' => '07:40:00', 'end' => '08:15:00'],
             4 => ['start' => '08:15:00', 'end' => '08:50:00'],
-            // Jeda Istirahat I: 08:50 - 09:05 (15 Menit) tidak dihitung sebagai jam pelajaran KBM
             5 => ['start' => '09:05:00', 'end' => '09:40:00'],
             6 => ['start' => '09:40:00', 'end' => '10:15:00'],
             7 => ['start' => '10:15:00', 'end' => '10:50:00'],
-            // Jeda Istirahat II / Dzuhur: 10:50 - 11:05 (15 Menit)
             8 => ['start' => '11:05:00', 'end' => '11:40:00'],
             9 => ['start' => '11:40:00', 'end' => '12:15:00'],
         ];
@@ -171,15 +209,12 @@ class ScheduleResource extends Resource
             if (isset($scheduleMaster[$endPeriod])) {
                 $endTime = $scheduleMaster[$endPeriod]['end'];
             } else {
-                // Fallback jika melebihi slot master
                 $endTime = Carbon::parse($startTime)->addMinutes($jp * 35)->format('H:i:s');
             }
 
-            // Set nilai ke database
             $set('start_time', $startTime);
             $set('end_time', $endTime);
 
-            // Tampilkan informasi visual ke placeholder
             $displayStart = substr($startTime, 0, 5);
             $displayEnd = substr($endTime, 0, 5);
             $labelPeriod = ($startPeriod == $endPeriod) ? "Jam Ke-{$startPeriod}" : "Jam Ke-{$startPeriod} s/d {$endPeriod}";
@@ -227,6 +262,22 @@ class ScheduleResource extends Resource
                 Tables\Filters\SelectFilter::make('class_id')
                     ->label('Kelas')
                     ->relationship('classRoom', 'name'),
+
+                // --- FILTER MATA PELAJARAN DISESUAIKAN BERDASARKAN GURU ---
+                Tables\Filters\SelectFilter::make('subject_id')
+                    ->label('Filter Mata Pelajaran')
+                    ->options(function () {
+                        $user = auth()->user();
+                        if ($user->role === 'teacher') {
+                            $teacherId = $user->teacher?->id ?? $user->teacher_id ?? $user->id;
+                            $subjectIds = TeacherSubjectClass::where('teacher_id', $teacherId)
+                                ->orWhere('teacher_id', $user->id)
+                                ->pluck('subject_id');
+
+                            return Subject::whereIn('id', $subjectIds)->pluck('name', 'id');
+                        }
+                        return Subject::pluck('name', 'id');
+                    }),
 
                 Tables\Filters\SelectFilter::make('day_name')
                     ->label('Hari')

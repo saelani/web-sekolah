@@ -4,7 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ClassroomResource\Pages;
 use App\Models\ClassRoom;
-use App\Traits\HasRoleScope;
+// use App\Traits\HasAdminOrHeadmasterAccess;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -12,9 +12,9 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
-class ClassroomResource extends Resource
+class ClassroomResource extends BaseResource
 {
-    use HasRoleScope;
+    // use HasAdminOrHeadmasterAccess;
 
     protected static ?string $model = ClassRoom::class;
 
